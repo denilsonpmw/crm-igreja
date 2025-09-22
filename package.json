@@ -12,13 +12,16 @@
     "migration:run": "npm run typeorm -- migration:run",
     "lint": "eslint . --ext .ts",
     "test": "jest",
+    "test:coverage": "jest --coverage",
+    "test:e2e": "playwright test --config=e2e/playwright.config.ts",
     "test:watch": "jest --watch",
-    "ci": "npm ci && npm run build && npm test",
+    "ci": "npm ci && npm run lint && npm run build && npm run test:coverage",
     "pm2:start": "pm2 start ecosystem.config.js --env production"
   },
   "dependencies": {
     "bcrypt": "^5.1.0",
     "cors": "^2.8.5",
+    "csv-parse": "^6.1.0",
     "dotenv": "^16.0.0",
     "express": "^4.18.2",
     "joi": "^18.0.1",
@@ -30,6 +33,7 @@
     "typeorm": "^0.3.17"
   },
   "devDependencies": {
+    "@playwright/test": "^1.55.0",
     "@types/bcrypt": "^5.0.2",
     "@types/cors": "^2.8.19",
     "@types/express": "^4.17.17",
@@ -38,6 +42,9 @@
     "@types/multer": "^2.0.0",
     "@types/node": "^20.19.17",
     "@types/supertest": "^6.0.3",
+    "@typescript-eslint/eslint-plugin": "^8.44.0",
+    "@typescript-eslint/parser": "^8.44.0",
+    "eslint": "^9.36.0",
     "jest": "^29.7.0",
     "supertest": "^6.3.4",
     "ts-jest": "^29.4.4",
