@@ -35,7 +35,7 @@ router.post('/', authorize('members', 'create'), async (req, res) => {
   const member = repo.create({ ...value, congregacao_id: req.congregacao_id || null, created_by: req.user_id || null });
   await repo.save(member);
   // audit
-  try { await recordAudit({ user_id: req.user_id || null, congregacao_id: req.congregacao_id || null, action: 'CREATE', resource_type: 'members', resource_id: (member as any).membro_id, new_values: member, success: true }); } catch (e) { console.error('Audit error', e); }
+  try { await recordAudit({ user_id: req.user_id || undefined, congregacao_id: req.congregacao_id || undefined, action: 'CREATE', resource_type: 'members', resource_id: (member as any).membro_id, new_values: member, success: true, ip_address: req.ip || undefined, user_agent: (req.headers['user-agent'] as any) || undefined, session_id: (req.headers['x-session-id'] as any) || undefined }); } catch (e) { console.error('Audit error', e); }
   res.status(201).json(member);
 });
 
@@ -55,7 +55,7 @@ router.put('/:id', authorize('members', 'update'), async (req, res) => {
 
   Object.assign(member, value)
   await repo.save(member);
-  try { await recordAudit({ user_id: req.user_id || null, congregacao_id: req.congregacao_id || null, action: 'UPDATE', resource_type: 'members', resource_id: (member as any).membro_id, new_values: member, success: true }); } catch (e) { console.error('Audit error', e); }
+  try { await recordAudit({ user_id: req.user_id || undefined, congregacao_id: req.congregacao_id || undefined, action: 'UPDATE', resource_type: 'members', resource_id: (member as any).membro_id, new_values: member, success: true, ip_address: req.ip || undefined, user_agent: (req.headers['user-agent'] as any) || undefined, session_id: (req.headers['x-session-id'] as any) || undefined }); } catch (e) { console.error('Audit error', e); }
   res.json(member);
 });
 
@@ -70,7 +70,7 @@ router.delete('/:id', authorize('members', 'delete'), async (req, res) => {
   }
 
   await repo.remove(member);
-  try { await recordAudit({ user_id: req.user_id || null, congregacao_id: req.congregacao_id || null, action: 'DELETE', resource_type: 'members', resource_id: (member as any).membro_id, old_values: member, success: true }); } catch (e) { console.error('Audit error', e); }
+  try { await recordAudit({ user_id: req.user_id || undefined, congregacao_id: req.congregacao_id || undefined, action: 'DELETE', resource_type: 'members', resource_id: (member as any).membro_id, old_values: member, success: true, ip_address: req.ip || undefined, user_agent: (req.headers['user-agent'] as any) || undefined, session_id: (req.headers['x-session-id'] as any) || undefined }); } catch (e) { console.error('Audit error', e); }
   res.status(204).send();
 });
 

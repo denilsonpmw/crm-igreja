@@ -45,3 +45,6 @@ frontend/build/
 .nyc_output/
 .parcel-cache/
 node_modules
+
+# E2E
+e2e/tmp_*.csv

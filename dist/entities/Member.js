@@ -35,6 +35,14 @@ __decorate([
     __metadata("design:type", String)
 ], Member.prototype, "telefone", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ type: 'uuid', nullable: true }),
+    __metadata("design:type", Object)
+], Member.prototype, "congregacao_id", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'uuid', nullable: true }),
+    __metadata("design:type", Object)
+], Member.prototype, "created_by", void 0);
+__decorate([
     (0, typeorm_1.CreateDateColumn)(),
     __metadata("design:type", Date)
 ], Member.prototype, "created_at", void 0);

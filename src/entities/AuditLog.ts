@@ -32,6 +32,9 @@ export class AuditLog {
   @Column({ type: 'text', nullable: true })
   user_agent?: string;
 
+  @Column({ type: 'uuid', nullable: true })
+  session_id?: string | null;
+
   @Column({ type: 'boolean', default: true })
   success!: boolean;
 
