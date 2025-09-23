@@ -7,7 +7,7 @@ on:
     branches: [ main, master ]
 
 jobs:
-  test:
+  lint-and-build:
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -30,33 +30,11 @@ jobs:
       - name: TypeScript check
         run: npm run build
 
-      - name: Run backend tests
-        env:
-          NODE_ENV: test
-        run: npm run test
-
       - name: Run frontend tests
         working-directory: frontend
         run: npm ci && npm test -- --watchAll=false
 
-      - name: Upload coverage to Codecov
-        if: matrix.node-version == '20.x'
-        uses: codecov/codecov-action@v4
-        with:
-          file: ./coverage/lcov.info
-          flags: backend
-          name: backend-coverage
-          fail_ci_if_error: false
-name: CI
-
-on:
-  push:
-    branches: [ main, master ]
-  pull_request:
-    branches: [ main, master ]
-
-jobs:
-  build-and-test:
+  test-with-postgres:
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -71,12 +49,16 @@ jobs:
           --health-cmd "pg_isready -U postgres" --health-interval 10s --health-timeout 5s --health-retries 5
     steps:
       - uses: actions/checkout@v4
-      - name: Use Node.js
+
+      - name: Use Node.js 20
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: 'npm'
+
       - name: Install dependencies
         run: npm ci
+
       - name: Wait for Postgres
         run: |
           for i in {1..30}; do
@@ -85,11 +67,17 @@ jobs:
           done
         env:
           PGPASSWORD: postgres
-      - name: Build
-        run: |
-          export DATABASE_URL=postgres://postgres:postgres@localhost:5432/crm
-          npm run build
-      - name: Run tests
-        run: |
-          export DATABASE_URL=postgres://postgres:postgres@localhost:5432/crm
-          npm test
+
+      - name: Run backend tests with coverage
+        env:
+          NODE_ENV: test
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/crm
+        run: npm run test:coverage
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./coverage/lcov.info
+          flags: backend
+          name: backend-coverage
+          fail_ci_if_error: false
