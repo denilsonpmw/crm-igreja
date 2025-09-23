@@ -6,6 +6,7 @@ import { AppDataSource } from './data-source';
 import authRouter from './routes/auth';
 import membersRouter from './routes/members';
 import congregationsRouter from './routes/congregations';
+import familiesRouter from './routes/families';
 import { tenantMiddleware } from './middlewares/tenant';
 import rolesRouter from './routes/roles';
 import auditRouter from './routes/audit';
@@ -35,9 +36,10 @@ app.use('/members', membersRouter);
 app.use('/roles', rolesRouter);
 app.use('/audit', auditRouter);
 app.use('/import', importRouter);
-// middleware de tenant (simples) e rota de congregações
+// middleware de tenant (simples) e rota de congregações e famílias
 app.use(tenantMiddleware);
 app.use('/congregations', congregationsRouter);
+app.use('/families', familiesRouter);
 
 const PORT = Number(process.env.PORT) || 3001;
 

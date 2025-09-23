@@ -12,6 +12,7 @@ const data_source_1 = require("./data-source");
 const auth_1 = __importDefault(require("./routes/auth"));
 const members_1 = __importDefault(require("./routes/members"));
 const congregations_1 = __importDefault(require("./routes/congregations"));
+const families_1 = __importDefault(require("./routes/families"));
 const tenant_1 = require("./middlewares/tenant");
 const roles_1 = __importDefault(require("./routes/roles"));
 const audit_1 = __importDefault(require("./routes/audit"));
@@ -35,9 +36,10 @@ app.use('/members', members_1.default);
 app.use('/roles', roles_1.default);
 app.use('/audit', audit_1.default);
 app.use('/import', imports_1.default);
-// middleware de tenant (simples) e rota de congregações
+// middleware de tenant (simples) e rota de congregações e famílias
 app.use(tenant_1.tenantMiddleware);
 app.use('/congregations', congregations_1.default);
+app.use('/families', families_1.default);
 const PORT = Number(process.env.PORT) || 3001;
 async function startServer(port = PORT) {
     try {
