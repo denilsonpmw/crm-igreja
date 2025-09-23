@@ -33,6 +33,13 @@ describe('Real /import/members route with TestDataSource', () => {
       req.congregacao_id = req.headers['x-congregacao-id'] || null;
       next();
     });
+    // ensure congregation exists for header
+    const congRepo = TestDataSource.getRepository(require('../entities/Congregacao').Congregacao);
+    const cid = '00000000-0000-0000-0000-000000000002';
+    (async () => {
+      let c = await congRepo.findOne({ where: { congregacao_id: cid } as any });
+      if (!c) { c = congRepo.create({ congregacao_id: cid, nome: 'Test Cong 2' }); await congRepo.save(c); }
+    })();
     app.use('/import', importRouter);
 
     // prepare temp CSV file
@@ -42,7 +49,7 @@ describe('Real /import/members route with TestDataSource', () => {
 
     const res = await request(app)
       .post('/import/members')
-      .set('x-user-id', 'route-user-1')
+      .set('x-user-id', '00000000-0000-0000-0000-000000000002')
       .set('x-congregacao-id', '00000000-0000-0000-0000-000000000002')
       .attach('file', tmpPath);
 

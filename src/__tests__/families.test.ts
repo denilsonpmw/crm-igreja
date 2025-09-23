@@ -22,11 +22,11 @@ describe('Families System', () => {
   });
 
   beforeEach(async () => {
-    // Limpar dados de teste
-    await AppDataSource.getRepository(Family).clear();
-    await AppDataSource.getRepository(Member).clear();
-    await AppDataSource.getRepository(Congregacao).clear();
-    await AppDataSource.getRepository(User).clear();
+    // Reinicializar datasource para garantir schema limpo entre testes
+    if (AppDataSource.isInitialized) {
+      await AppDataSource.destroy();
+    }
+    await AppDataSource.initialize();
 
     // Criar congregação de teste
     const congregacaoRepo = AppDataSource.getRepository(Congregacao);

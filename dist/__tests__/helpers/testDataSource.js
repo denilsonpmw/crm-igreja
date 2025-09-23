@@ -8,6 +8,7 @@ const User_1 = require("../../entities/User");
 const UserSession_1 = require("../../entities/UserSession");
 const Member_1 = require("../../entities/Member");
 const Congregacao_1 = require("../../entities/Congregacao");
+const Family_1 = require("../../entities/Family");
 const Role_1 = require("../../entities/Role");
 const AuditLog_1 = require("../../entities/AuditLog");
 // DataSource específico para testes com banco em memória
@@ -16,5 +17,5 @@ exports.TestDataSource = new typeorm_1.DataSource({
     database: ':memory:',
     synchronize: true,
     logging: false,
-    entities: [User_1.User, UserSession_1.UserSession, Member_1.Member, Congregacao_1.Congregacao, Role_1.Role, AuditLog_1.AuditLog]
+    entities: [User_1.User, UserSession_1.UserSession, Member_1.Member, Congregacao_1.Congregacao, Family_1.Family, Role_1.Role, AuditLog_1.AuditLog]
 });

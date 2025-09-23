@@ -228,11 +228,32 @@ function createTestApp() {
             res.json(items);
         });
         router.post('/', async (req, res) => {
-            const { nome, endereco, telefone, email, plano } = req.body;
+            const { nome, endereco, telefone, email, plano, website, cnpj, pastor_principal, limite_membros, limite_storage_mb, limite_mensagens_mes, ativo, data_fundacao, logo_url, configuracoes } = req.body;
             if (!nome)
                 return res.status(400).json({ message: 'Missing nome' });
             const repo = testDataSource_1.TestDataSource.getRepository(Congregacao_1.Congregacao);
-            const c = repo.create({ nome, endereco, telefone, email, plano });
+            const payload = { nome, endereco, telefone, email, plano };
+            if (website !== undefined)
+                payload.website = website;
+            if (cnpj !== undefined)
+                payload.cnpj = cnpj;
+            if (pastor_principal !== undefined)
+                payload.pastor_principal = pastor_principal;
+            if (limite_membros !== undefined)
+                payload.limite_membros = limite_membros;
+            if (limite_storage_mb !== undefined)
+                payload.limite_storage_mb = limite_storage_mb;
+            if (limite_mensagens_mes !== undefined)
+                payload.limite_mensagens_mes = limite_mensagens_mes;
+            if (ativo !== undefined)
+                payload.ativo = ativo;
+            if (data_fundacao !== undefined)
+                payload.data_fundacao = data_fundacao;
+            if (logo_url !== undefined)
+                payload.logo_url = logo_url;
+            if (configuracoes !== undefined)
+                payload.configuracoes = configuracoes;
+            const c = repo.create(payload);
             await repo.save(c);
             res.status(201).json(c);
         });
@@ -248,7 +269,37 @@ function createTestApp() {
             const c = await repo.findOne({ where: { congregacao_id: req.params.id } });
             if (!c)
                 return res.status(404).json({ message: 'Not found' });
-            repo.merge(c, req.body);
+            const { nome, endereco, telefone, email, plano, website, cnpj, pastor_principal, limite_membros, limite_storage_mb, limite_mensagens_mes, ativo, data_fundacao, logo_url, configuracoes } = req.body;
+            if (nome !== undefined)
+                c.nome = nome;
+            if (endereco !== undefined)
+                c.endereco = endereco;
+            if (telefone !== undefined)
+                c.telefone = telefone;
+            if (email !== undefined)
+                c.email = email;
+            if (plano !== undefined)
+                c.plano = plano;
+            if (website !== undefined)
+                c.website = website;
+            if (cnpj !== undefined)
+                c.cnpj = cnpj;
+            if (pastor_principal !== undefined)
+                c.pastor_principal = pastor_principal;
+            if (limite_membros !== undefined)
+                c.limite_membros = limite_membros;
+            if (limite_storage_mb !== undefined)
+                c.limite_storage_mb = limite_storage_mb;
+            if (limite_mensagens_mes !== undefined)
+                c.limite_mensagens_mes = limite_mensagens_mes;
+            if (ativo !== undefined)
+                c.ativo = ativo;
+            if (data_fundacao !== undefined)
+                c.data_fundacao = data_fundacao;
+            if (logo_url !== undefined)
+                c.logo_url = logo_url;
+            if (configuracoes !== undefined)
+                c.configuracoes = configuracoes;
             await repo.save(c);
             res.json(c);
         });

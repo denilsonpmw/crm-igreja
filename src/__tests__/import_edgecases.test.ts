@@ -19,6 +19,20 @@ describe('Import route edge cases', () => {
     dataSourceModule.AppDataSource = TestDataSource;
     const importRouter = require('../routes/imports').default;
     const app = express();
+    // Garantir que a congregacao do header exista no banco de teste (middleware deve rodar antes do router)
+    app.use(async (req: any, _res: any, next: any) => {
+      const cid = req.headers['x-congregacao-id'];
+      if (cid) {
+        const idVal = Array.isArray(cid) ? cid[0] : cid;
+        const congRepo = TestDataSource.getRepository(require('../entities/Congregacao').Congregacao);
+        let c = await congRepo.findOne({ where: { congregacao_id: idVal } as any });
+        if (!c) {
+          c = congRepo.create({ congregacao_id: idVal, nome: 'Test Congregacao ' + idVal });
+          try { await congRepo.save(c); } catch (e) { /* ignore */ }
+        }
+      }
+      next();
+    });
     app.use((req: any, _res: any, next: any) => {
       req.user_id = req.headers['x-user-id'] || null;
       req.congregacao_id = req.headers['x-congregacao-id'] || null;
@@ -32,7 +46,7 @@ describe('Import route edge cases', () => {
     const app = mountImportRouter();
     const res = await request(app)
       .post('/import/members')
-      .set('x-user-id', 'edge-user')
+      .set('x-user-id', '00000000-0000-0000-0000-00000000abcd')
       .set('x-congregacao-id', '00000000-0000-0000-0000-000000000003');
 
     expect(res.status).toBe(400);
@@ -47,7 +61,7 @@ describe('Import route edge cases', () => {
 
     const res = await request(app)
       .post('/import/members')
-      .set('x-user-id', 'edge-user')
+      .set('x-user-id', '00000000-0000-0000-0000-00000000abcd')
       .set('x-congregacao-id', '00000000-0000-0000-0000-000000000003')
       .attach('file', tmp);
 
@@ -70,7 +84,7 @@ describe('Import route edge cases', () => {
 
     const res = await request(app)
       .post('/import/members')
-      .set('x-user-id', 'edge-user')
+      .set('x-user-id', '00000000-0000-0000-0000-00000000abcd')
       .set('x-congregacao-id', '00000000-0000-0000-0000-000000000003')
       .attach('file', tmp);
 

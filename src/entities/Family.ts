@@ -10,29 +10,29 @@ export class Family {
   @Column({ type: 'uuid' })
   congregacao_id!: string;
 
-  @Column({ length: 255 })
+  @Column({ type: 'varchar', length: 255 })
   nome_familia!: string;
 
   @Column({ type: 'text', nullable: true })
-  endereco?: string;
+  endereco?: string | null;
 
-  @Column({ length: 10, nullable: true })
-  cep?: string;
+  @Column({ type: 'varchar', length: 10, nullable: true })
+  cep?: string | null;
 
-  @Column({ length: 100, nullable: true })
-  cidade?: string;
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  cidade?: string | null;
 
-  @Column({ length: 2, nullable: true })
-  estado?: string;
+  @Column({ type: 'varchar', length: 2, nullable: true })
+  estado?: string | null;
 
-  @Column({ length: 20, nullable: true })
-  telefone_principal?: string;
+  @Column({ type: 'varchar', length: 20, nullable: true })
+  telefone_principal?: string | null;
 
   @Column({ type: 'uuid', nullable: true })
-  responsavel_id?: string; // ID do membro responsável pela família
+  responsavel_id?: string | null; // ID do membro responsável pela família
 
   @Column({ type: 'text', nullable: true })
-  observacoes?: string;
+  observacoes?: string | null;
 
   @Column({ type: 'boolean', default: true })
   ativo!: boolean;
@@ -46,7 +46,7 @@ export class Family {
   // Relacionamentos
   @ManyToOne(() => Congregacao, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'congregacao_id' })
-  congregacao?: Congregacao;
+  congregacao!: Congregacao;
 
   @OneToMany(() => Member, member => member.familia)
   membros?: Member[];

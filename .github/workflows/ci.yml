@@ -22,8 +22,10 @@ jobs:
           cache: 'npm'
       - name: Install dependencies
         run: npm ci
+      - name: Build TypeScript
+        run: npm run build
       - name: Run lint
-        run: npm run lint
+        run: npx eslint src --ext .ts
       - name: TypeScript check
         run: npm run build
       - name: Run frontend tests
@@ -55,6 +57,8 @@ jobs:
           cache: 'npm'
       - name: Install dependencies
         run: npm ci
+      - name: Build TypeScript
+        run: npm run build
       - name: Wait for Postgres to be ready
         run: |
           sudo apt-get update -y

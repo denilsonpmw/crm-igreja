@@ -22,7 +22,10 @@ export const AppDataSource = new DataSource(
         synchronize: true,
         logging: false,
         entities: [path.join(__dirname, 'entities', `*.${entityExtension}`)],
-        migrations: [path.join(__dirname, 'migrations', `*.${entityExtension}`)]
+        migrations: [
+          path.join(__dirname, 'migrations', `*.${entityExtension}`),
+          path.join(process.cwd(), 'migrations', `*.${entityExtension}`),
+        ]
       }
     : {
         type: 'sqlite',

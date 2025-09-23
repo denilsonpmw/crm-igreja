@@ -78,9 +78,18 @@ describe('Import multipart CSV -> members with audit', () => {
 
     const csv = 'nome,cpf,telefone\nImportado Um,000.000.000-00,1111\nImportado Dois,111.111.111-11,2222\n';
 
+    // Garantir que a congregacao de teste exista
+    const congRepo = TestDataSource.getRepository(require('../entities/Congregacao').Congregacao);
+    const congId = '00000000-0000-0000-0000-000000000001';
+    let existing = await congRepo.findOne({ where: { congregacao_id: congId } as any });
+    if (!existing) {
+      existing = congRepo.create({ congregacao_id: congId, nome: 'Test Congregacao 1' });
+      await congRepo.save(existing);
+    }
+
     const res = await request(app)
       .post('/import/members')
-      .set('x-user-id', 'test-user-1')
+      .set('x-user-id', '00000000-0000-0000-0000-000000000001')
       .set('x-congregacao-id', '00000000-0000-0000-0000-000000000001')
       .attach('file', Buffer.from(csv), 'members.csv');
 

@@ -1,8 +1,0 @@
-dist/
-coverage/
-node_modules/
-frontend/
-build/
-test-results/
-dev.sqlite
-ecosystem.config.js

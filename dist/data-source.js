@@ -23,7 +23,10 @@ exports.AppDataSource = new typeorm_1.DataSource(isPostgres
         synchronize: true,
         logging: false,
         entities: [path_1.default.join(__dirname, 'entities', `*.${entityExtension}`)],
-        migrations: [path_1.default.join(__dirname, 'migrations', `*.${entityExtension}`)]
+        migrations: [
+            path_1.default.join(__dirname, 'migrations', `*.${entityExtension}`),
+            path_1.default.join(process.cwd(), 'migrations', `*.${entityExtension}`),
+        ]
     }
     : {
         type: 'sqlite',

@@ -22,7 +22,7 @@ export class UserSession {
   @Column({ type: 'varchar', length: 50, nullable: true })
   ip_address?: string;
 
-  @Column({ type: 'datetime' })
+  @Column({ type: 'timestamp' })
   expires_at!: Date;
 
   @Column({ default: false })
