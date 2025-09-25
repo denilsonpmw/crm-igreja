@@ -4,8 +4,10 @@ import dotenv from 'dotenv';
 import path from 'path';
 dotenv.config();
 
+import { logger } from './utils/logger';
+
 if (!process.env.DATABASE_URL) {
-  console.warn('DATABASE_URL not set — falling back to SQLite dev database at ./dev.sqlite');
+  logger.warn('DATABASE_URL not set — falling back to SQLite dev database at ./dev.sqlite');
 }
 
 const isPostgres = !!process.env.DATABASE_URL;
@@ -33,5 +35,5 @@ export const AppDataSource = new DataSource(
         synchronize: true, // SQLite local pode usar synchronize
         logging: false,
         entities: [path.join(__dirname, 'entities', `*.${entityExtension}`)]
-      } as any
+  }
 );

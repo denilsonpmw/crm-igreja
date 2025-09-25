@@ -23,9 +23,11 @@ describe('Real /import/members route with TestDataSource', () => {
 
     const app = express();
     // simple headers middleware to simulate tenant and user
-    app.use((req: any, _res: any, next: any) => {
-      req.user_id = req.headers['x-user-id'] || null;
-      req.congregacao_id = req.headers['x-congregacao-id'] || null;
+    app.use((req: import('express').Request, _res: import('express').Response, next: import('express').NextFunction) => {
+      const userIdHeader = req.headers['x-user-id'];
+      req.user_id = Array.isArray(userIdHeader) ? userIdHeader[0] : userIdHeader || null;
+      const congIdHeader = req.headers['x-congregacao-id'];
+      req.congregacao_id = Array.isArray(congIdHeader) ? congIdHeader[0] : congIdHeader || null;
       next();
     });
     // ensure congregation exists for header

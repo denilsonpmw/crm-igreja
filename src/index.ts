@@ -3,6 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { AppDataSource } from './data-source';
+import { logger } from './utils/logger';
 import authRouter from './routes/auth';
 import membersRouter from './routes/members';
 import congregationsRouter from './routes/congregations';
@@ -50,17 +51,17 @@ export async function startServer(port: number = PORT) {
     // Se usando Postgres, executar migrations
     if (process.env.DATABASE_URL) {
       await AppDataSource.runMigrations();
-      console.log('Database migrations executed successfully');
+        logger.info('Database migrations executed successfully');
     }
     
     return new Promise<void>((resolve) => {
       app.listen(port, () => {
-        console.log(`Server running on port ${port}`);
+          logger.info(`Server running on port ${port}`);
         resolve();
       });
     });
   } catch (err) {
-    console.error('Error during Data Source initialization', err);
+      logger.error('Error during Data Source initialization', err);
     throw err;
   }
 }

@@ -4,6 +4,8 @@ import { Congregacao } from '../entities/Congregacao';
 import { tenantMiddleware } from '../middlewares/tenant';
 import { authorize } from '../middlewares/authorize';
 import { recordAudit } from '../services/auditService';
+import { logger } from '../utils/logger';
+import type { FindOptionsWhere } from 'typeorm';
 
 const router = Router();
 
@@ -25,7 +27,7 @@ router.get('/', authorize('congregations', 'read'), async (req, res) => {
 
     // auditoria
     await recordAudit({
-      user_id: (req as any).user_id,
+      user_id: (req as unknown as { user_id?: string }).user_id,
       action: 'READ',
       resource_type: 'congregacoes',
       new_values: { action: 'list', page, limit, search },
@@ -33,7 +35,7 @@ router.get('/', authorize('congregations', 'read'), async (req, res) => {
 
     res.json({ data: items, total, page, limit, totalPages: Math.ceil(total / limit) });
   } catch (err) {
-    console.error('Error listing congregations', err);
+    logger.error('Error listing congregations', err);
     res.status(500).json({ message: 'Internal error' });
   }
 });
@@ -71,12 +73,12 @@ router.post('/', authorize('congregations', 'create'), async (req, res) => {
     c.logo_url = logo_url;
     c.configuracoes = configuracoes;
 
-    (c as any).created_by = (req as any).user_id;
+    c.created_by = (req as unknown as { user_id?: string }).user_id;
 
     const saved = await repo.save(c);
 
     await recordAudit({
-      user_id: (req as any).user_id,
+      user_id: (req as unknown as { user_id?: string }).user_id,
       action: 'CREATE',
       resource_type: 'congregacoes',
       resource_id: saved.congregacao_id,
@@ -85,7 +87,7 @@ router.post('/', authorize('congregations', 'create'), async (req, res) => {
 
     res.status(201).json(saved);
   } catch (err) {
-    console.error('Error creating congregacao', err);
+    logger.error('Error creating congregacao', err);
     res.status(500).json({ message: 'Internal error' });
   }
 });
@@ -98,7 +100,7 @@ router.get('/:id', authorize('congregations', 'read'), async (req, res) => {
     if (!c) return res.status(404).json({ message: 'Not found' });
 
     await recordAudit({
-      user_id: (req as any).user_id,
+      user_id: (req as unknown as { user_id?: string }).user_id,
       action: 'READ',
       resource_type: 'congregacoes',
       resource_id: c.congregacao_id,
@@ -106,7 +108,7 @@ router.get('/:id', authorize('congregations', 'read'), async (req, res) => {
 
     res.json(c);
   } catch (err) {
-    console.error('Error getting congregacao', err);
+     logger.error('Error getting congregacao', err);
     res.status(500).json({ message: 'Internal error' });
   }
 });
@@ -118,7 +120,7 @@ router.put('/:id', authorize('congregations', 'update'), async (req, res) => {
     const c = await repo.findOne({ where: { congregacao_id: req.params.id } });
     if (!c) return res.status(404).json({ message: 'Not found' });
 
-    const old = { ...c } as any;
+  const old = { ...c } as unknown;
     const {
       nome, endereco, telefone, email, plano,
       website, cnpj, pastor_principal,
@@ -144,7 +146,7 @@ router.put('/:id', authorize('congregations', 'update'), async (req, res) => {
     const updated = await repo.save(c);
 
     await recordAudit({
-      user_id: (req as any).user_id,
+      user_id: (req as unknown as { user_id?: string }).user_id,
       action: 'UPDATE',
       resource_type: 'congregacoes',
       resource_id: updated.congregacao_id,
@@ -154,7 +156,7 @@ router.put('/:id', authorize('congregations', 'update'), async (req, res) => {
 
     res.json(updated);
   } catch (err) {
-    console.error('Error updating congregacao', err);
+     logger.error('Error updating congregacao', err);
     res.status(500).json({ message: 'Internal error' });
   }
 });
@@ -169,7 +171,7 @@ router.delete('/:id', authorize('congregations', 'delete'), async (req, res) => 
     await repo.remove(c);
 
     await recordAudit({
-      user_id: (req as any).user_id,
+      user_id: (req as unknown as { user_id?: string }).user_id,
       action: 'DELETE',
       resource_type: 'congregacoes',
       resource_id: c.congregacao_id,
@@ -178,7 +180,7 @@ router.delete('/:id', authorize('congregations', 'delete'), async (req, res) => 
 
     res.status(204).send();
   } catch (err) {
-    console.error('Error deleting congregacao', err);
+     logger.error('Error deleting congregacao', err);
     res.status(500).json({ message: 'Internal error' });
   }
 });

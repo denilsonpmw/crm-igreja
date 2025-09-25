@@ -5,6 +5,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import { recordAudit } from '../services/auditService';
+import { logger } from '../utils/logger';
 
 // Simple email regex (reasonable for validation, not fully RFC-complete)
 function isValidEmail(email: string | undefined) {
@@ -24,33 +25,37 @@ const router = express.Router();
 // We'll require multer lazily inside handler so project doesn't fail to compile if multer is not installed in dev env
 // Simple CSV parser (header row expected). Returns array of objects keyed by header.
 // Keep a simple fallback parser but prefer csv-parse stream when available
-function parseCsv(content: string) {
+function parseCsv(content: string): Array<Record<string, string>> {
   const lines = content.split(/\r?\n/).filter(Boolean);
   if (lines.length === 0) return [];
   const headers = lines[0].split(',').map(h => h.trim());
   return lines.slice(1).map(line => {
     const cols = line.split(',').map(c => c.trim());
-    const obj: any = {};
-    headers.forEach((h, i) => obj[h] = cols[i] || '');
+    const obj: Record<string, string> = {};
+    headers.forEach((h, i) => { obj[h] = cols[i] || ''; });
     return obj;
   });
 }
 
 // POST /import/members (multipart/form-data file field: file)
-router.post('/members', async (req: any, res) => {
+type MulterRequest = express.Request & { file?: Express.Multer.File; congregacao_id?: string | null; user_id?: string };
+
+router.post('/members', async (req, res) => {
+  const creq = req as MulterRequest;
   // Lazy load multer to avoid type/dependency issues in minimal dev environments
   const multer = require('multer');
   const upload = multer({ dest: os.tmpdir() }).single('file');
-  upload(req, res, async (err: any) => {
+  upload(req, res, async (err: unknown) => {
     if (err) return res.status(500).json({ message: 'Upload failed' });
+    // multer attaches file to the request; keep runtime behavior but guard typing
     if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
     const filePath = req.file.path;
     const repo = AppDataSource.getRepository(Member);
     const created: Partial<Member>[] = [];
-    const skipped: any[] = [];
-  const errors: any[] = [];
-    let parseStreamAvailable = false;
-    let parser: any = null;
+    const skipped: Array<{ reason: string; cpf?: string; existing_id?: string; line?: number }> = [];
+    const errors: Array<{ line: number; reason: string; raw?: unknown }> = [];
+  let parseStreamAvailable = false;
+  let parser: unknown = null;
     try {
       // try to require csv-parse dynamically
       try {
@@ -66,29 +71,39 @@ router.post('/members', async (req: any, res) => {
         await new Promise<void>((resolve, reject) => {
           const rs = fs.createReadStream(filePath);
           rs.on('error', (e) => reject(e));
-          const records: any[] = [];
+          const records: Array<{ record: Record<string, unknown>; line: number }> = [];
           let lineCounter = 1; // header is line 1
-          parser.on('readable', () => {
-            let record: any;
-            while ((record = parser.read()) !== null) {
-              lineCounter += 1;
-              records.push({ record, line: lineCounter });
-            }
-          });
-          parser.on('error', (err2: any) => reject(err2));
-          parser.on('end', async () => {
+              // csv-parse uses a dynamic event API at runtime; provide a minimal typed subset
+              interface CsvParser {
+                on(event: 'readable', cb: () => void): void;
+                on(event: 'error', cb: (err: unknown) => void): void;
+                on(event: 'end', cb: () => void): void;
+                read(): unknown;
+              }
+              const p = parser as CsvParser;
+              p.on('readable', () => {
+                // parser.read() returns unknown; read into a local var and guard
+                let record: unknown;
+                while ((record = p.read()) !== null) {
+                  lineCounter += 1;
+                  records.push({ record: record as Record<string, unknown>, line: lineCounter });
+                }
+              });
+              p.on('error', (err2: unknown) => reject(err2));
+              p.on('end', async () => {
             try {
               // Process sequentially to avoid race conditions on duplicate checks
               for (const item of records) {
                 const r = item.record;
                 const lineno = item.line;
-                const obj: any = {
-                  nome: r.nome || r.name || '',
-                  email: r.email || undefined,
-                  telefone: r.telefone || r.phone || undefined,
-                  cpf: r.cpf || undefined,
-                  congregacao_id: req.congregacao_id || null,
-                  created_by: req.user_id || null
+                const rec = r as Record<string, unknown>;
+                const obj: Partial<Member> & Record<string, unknown> = {
+                  nome: (typeof rec.nome === 'string' ? rec.nome : (typeof rec.name === 'string' ? rec.name : '')) as string,
+                  email: typeof rec.email === 'string' ? rec.email : undefined,
+                  telefone: typeof rec.telefone === 'string' ? rec.telefone : (typeof rec.phone === 'string' ? rec.phone : undefined),
+                  cpf: typeof rec.cpf === 'string' ? rec.cpf : undefined,
+                  congregacao_id: req.congregacao_id ?? null,
+                  created_by: req.user_id ?? null
                 };
                 if (!obj.nome) {
                   errors.push({ line: lineno, reason: 'missing_nome', raw: r });
@@ -102,25 +117,37 @@ router.post('/members', async (req: any, res) => {
                   errors.push({ line: lineno, reason: 'invalid_cpf', raw: r });
                   continue;
                 }
-                let existing: any = null;
+                let existing: unknown = null;
                 if (obj.cpf) {
-                  existing = await repo.findOne({ where: { cpf: obj.cpf, congregacao_id: obj.congregacao_id } as any });
+                  existing = await repo.findOne({ where: { cpf: obj.cpf, congregacao_id: obj.congregacao_id } as unknown as Record<string, unknown> });
                 }
                 if (existing) {
-                  skipped.push({ reason: 'duplicate_cpf', cpf: obj.cpf, existing_id: existing.membro_id, line: lineno });
-                  try { await recordAudit({ user_id: req.user_id || undefined, congregacao_id: req.congregacao_id || undefined, action: 'DUPLICATE_SKIPPED', resource_type: 'members', resource_id: existing.membro_id, new_values: obj, success: true, ip_address: req.ip || undefined, user_agent: (req.headers['user-agent'] as any) || undefined, session_id: (req.headers['x-session-id'] as any) || undefined }); } catch (e) { console.error('Audit error', e); }
+                  const existingId = (existing as unknown as { membro_id?: string }).membro_id;
+                  skipped.push({ reason: 'duplicate_cpf', cpf: obj.cpf as string | undefined, existing_id: existingId, line: lineno });
+                  try {
+                    const userAgent = typeof req.headers['user-agent'] === 'string' ? req.headers['user-agent'] : undefined;
+                    const sessionId = typeof req.headers['x-session-id'] === 'string' ? req.headers['x-session-id'] : undefined;
+                    await recordAudit({ user_id: req.user_id || undefined, congregacao_id: req.congregacao_id || undefined, action: 'DUPLICATE_SKIPPED', resource_type: 'members', resource_id: existingId, new_values: obj, success: true, ip_address: req.ip || undefined, user_agent: userAgent, session_id: sessionId });
+                  } catch (e) { logger.error('Audit error', e); }
                   continue;
                 }
-                const saved = await repo.save(repo.create(obj as any));
+                const createdEntity = repo.create(obj as Partial<Member>);
+                const saved = await repo.save(createdEntity);
                 created.push(saved as Partial<Member>);
-                try { await recordAudit({ user_id: req.user_id || undefined, congregacao_id: req.congregacao_id || undefined, action: 'CREATE', resource_type: 'members', resource_id: (saved as any).membro_id, new_values: saved, success: true, ip_address: req.ip || undefined, user_agent: (req.headers['user-agent'] as any) || undefined, session_id: (req.headers['x-session-id'] as any) || undefined }); } catch (e) { console.error('Audit error', e); }
+                try {
+                  const userAgent = typeof req.headers['user-agent'] === 'string' ? req.headers['user-agent'] : undefined;
+                  const sessionId = typeof req.headers['x-session-id'] === 'string' ? req.headers['x-session-id'] : undefined;
+                  await recordAudit({ user_id: req.user_id || undefined, congregacao_id: req.congregacao_id || undefined, action: 'CREATE', resource_type: 'members', resource_id: (saved as unknown as { membro_id?: string }).membro_id, new_values: saved, success: true, ip_address: req.ip || undefined, user_agent: userAgent, session_id: sessionId });
+                } catch (e) { logger.error('Audit error', e); }
               }
               resolve();
             } catch (e) {
               reject(e);
             }
           });
-          rs.pipe(parser);
+          // csv-parse stream doesn't have exact typings here; allow a single narrow cast
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          rs.pipe(p as any);
         });
       } else {
         // fallback to synchronous parser
@@ -129,13 +156,14 @@ router.post('/members', async (req: any, res) => {
         for (let i = 0; i < rows.length; i++) {
           const r = rows[i];
           const lineno = i + 2; // header is line 1
-          const obj: any = {
-            nome: r.nome || r.name || '',
-            email: r.email || undefined,
-            telefone: r.telefone || r.phone || undefined,
-            cpf: r.cpf || undefined,
-            congregacao_id: req.congregacao_id || null,
-            created_by: req.user_id || null
+          const rec = r as Record<string, unknown>;
+          const obj: Partial<Member> & Record<string, unknown> = {
+            nome: (typeof rec.nome === 'string' ? rec.nome : (typeof rec.name === 'string' ? rec.name : '')) as string,
+            email: typeof rec.email === 'string' ? rec.email : undefined,
+            telefone: typeof rec.telefone === 'string' ? rec.telefone : (typeof rec.phone === 'string' ? rec.phone : undefined),
+            cpf: typeof rec.cpf === 'string' ? rec.cpf : undefined,
+            congregacao_id: creq.congregacao_id ?? null,
+            created_by: creq.user_id ?? null
           };
           if (!obj.nome) {
             errors.push({ line: lineno, reason: 'missing_nome', raw: r });
@@ -149,23 +177,33 @@ router.post('/members', async (req: any, res) => {
             errors.push({ line: lineno, reason: 'invalid_cpf', raw: r });
             continue;
           }
-          let existing: any = null;
+          let existing: unknown = null;
           if (obj.cpf) {
-            existing = await repo.findOne({ where: { cpf: obj.cpf, congregacao_id: obj.congregacao_id } as any });
+            existing = await repo.findOne({ where: { cpf: obj.cpf, congregacao_id: obj.congregacao_id } as unknown as Record<string, unknown> });
           }
           if (existing) {
-            skipped.push({ reason: 'duplicate_cpf', cpf: obj.cpf, existing_id: existing.membro_id, line: lineno });
-            try { await recordAudit({ user_id: req.user_id || undefined, congregacao_id: req.congregacao_id || undefined, action: 'DUPLICATE_SKIPPED', resource_type: 'members', resource_id: existing.membro_id, new_values: obj, success: true, ip_address: req.ip || undefined, user_agent: (req.headers['user-agent'] as any) || undefined, session_id: (req.headers['x-session-id'] as any) || undefined }); } catch (e) { console.error('Audit error', e); }
+            const existingId = (existing as unknown as { membro_id?: string }).membro_id;
+            skipped.push({ reason: 'duplicate_cpf', cpf: obj.cpf as string | undefined, existing_id: existingId, line: lineno });
+            try {
+              const userAgent = typeof req.headers['user-agent'] === 'string' ? req.headers['user-agent'] : undefined;
+              const sessionId = typeof req.headers['x-session-id'] === 'string' ? req.headers['x-session-id'] : undefined;
+              await recordAudit({ user_id: creq.user_id || undefined, congregacao_id: creq.congregacao_id || undefined, action: 'DUPLICATE_SKIPPED', resource_type: 'members', resource_id: existingId, new_values: obj, success: true, ip_address: req.ip || undefined, user_agent: userAgent, session_id: sessionId });
+            } catch (e) { logger.error('Audit error', e); }
             continue;
           }
-          const saved = await repo.save(repo.create(obj as any));
+          const createdEntity = repo.create(obj as Partial<Member>);
+          const saved = await repo.save(createdEntity);
           created.push(saved as Partial<Member>);
-          try { await recordAudit({ user_id: req.user_id || undefined, congregacao_id: req.congregacao_id || undefined, action: 'CREATE', resource_type: 'members', resource_id: (saved as any).membro_id, new_values: saved, success: true, ip_address: req.ip || undefined, user_agent: (req.headers['user-agent'] as any) || undefined, session_id: (req.headers['x-session-id'] as any) || undefined }); } catch (e) { console.error('Audit error', e); }
+          try {
+            const userAgent = typeof req.headers['user-agent'] === 'string' ? req.headers['user-agent'] : undefined;
+            const sessionId = typeof req.headers['x-session-id'] === 'string' ? req.headers['x-session-id'] : undefined;
+            await recordAudit({ user_id: creq.user_id || undefined, congregacao_id: creq.congregacao_id || undefined, action: 'CREATE', resource_type: 'members', resource_id: (saved as unknown as { membro_id?: string }).membro_id, new_values: saved, success: true, ip_address: req.ip || undefined, user_agent: userAgent, session_id: sessionId });
+          } catch (e) { logger.error('Audit error', e); }
         }
       }
       res.json({ createdCount: created.length, created, skippedCount: skipped.length, skipped, errorsCount: errors.length, errors });
     } catch (err) {
-      console.error(err);
+      logger.error(err);
       res.status(500).json({ message: 'Failed to import' });
     } finally {
       try { fs.unlinkSync(filePath); } catch {};

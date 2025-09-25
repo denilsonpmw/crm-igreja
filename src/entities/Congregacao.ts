@@ -48,7 +48,11 @@ export class Congregacao {
   logo_url?: string;
 
   @Column({ type: 'simple-json', nullable: true })
-  configuracoes?: Record<string, any>;
+  configuracoes?: Record<string, unknown> | null;
+
+  // Usuário que criou o registro (opcional, usado para auditoria)
+  @Column({ type: 'uuid', nullable: true })
+  created_by?: string | null;
 
   @CreateDateColumn()
   created_at!: Date;

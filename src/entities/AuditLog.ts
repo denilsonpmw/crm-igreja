@@ -21,10 +21,10 @@ export class AuditLog {
   resource_id?: string | null;
 
   @Column({ type: 'json', nullable: true })
-  old_values?: any;
+  old_values?: unknown | null;
 
   @Column({ type: 'json', nullable: true })
-  new_values?: any;
+  new_values?: unknown | null;
 
   @Column({ nullable: true })
   ip_address?: string;

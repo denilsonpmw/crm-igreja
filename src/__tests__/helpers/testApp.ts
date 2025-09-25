@@ -259,7 +259,7 @@ export function createTestApp() {
       } = req.body;
       if (!nome) return res.status(400).json({ message: 'Missing nome' });
       const repo = TestDataSource.getRepository(Congregacao);
-      const payload: any = { nome, endereco, telefone, email, plano };
+      const payload: Record<string, unknown> = { nome, endereco, telefone, email, plano };
       if (website !== undefined) payload.website = website;
       if (cnpj !== undefined) payload.cnpj = cnpj;
       if (pastor_principal !== undefined) payload.pastor_principal = pastor_principal;
@@ -272,19 +272,19 @@ export function createTestApp() {
       if (configuracoes !== undefined) payload.configuracoes = configuracoes;
 
       // Check duplicate by name
-      const existing = await repo.findOne({ where: { nome: payload.nome } as any });
+      const existing = await repo.findOne({ where: { nome: payload.nome as string } });
       if (existing) return res.status(409).json({ message: 'Já existe uma congregação com esse nome' });
       const c = repo.create(payload);
       await repo.save(c);
       res.status(201).json(c);
     });
-    router.get('/:id', async (req: any, res: any) => {
+    router.get('/:id', async (req: import('express').Request, res: import('express').Response) => {
       const repo = TestDataSource.getRepository(Congregacao);
       const c = await repo.findOne({ where: { congregacao_id: req.params.id } });
       if (!c) return res.status(404).json({ message: 'Not found' });
       res.json(c);
     });
-    router.put('/:id', async (req: any, res: any) => {
+    router.put('/:id', async (req: import('express').Request, res: import('express').Response) => {
       const repo = TestDataSource.getRepository(Congregacao);
       const c = await repo.findOne({ where: { congregacao_id: req.params.id } });
       if (!c) return res.status(404).json({ message: 'Not found' });
@@ -312,11 +312,11 @@ export function createTestApp() {
       await repo.save(c);
       res.json(c);
     });
-    router.delete('/:id', async (req: any, res: any) => {
+    router.delete('/:id', async (req: import('express').Request, res: import('express').Response) => {
       const repo = TestDataSource.getRepository(Congregacao);
-      const toDelete = await repo.findOne({ where: { congregacao_id: req.params.id } as any });
+      const toDelete = await repo.findOne({ where: { congregacao_id: req.params.id } });
       if (!toDelete) return res.status(404).json({ message: 'Not found' });
-      await repo.delete({ congregacao_id: req.params.id } as any);
+      await repo.delete({ congregacao_id: req.params.id });
       res.status(204).send();
     });
     return router;

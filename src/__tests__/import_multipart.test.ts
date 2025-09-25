@@ -12,7 +12,7 @@ function parseCsv(content: string) {
   const headers = lines[0].split(',').map(h => h.trim());
   return lines.slice(1).map(line => {
     const cols = line.split(',').map(c => c.trim());
-    const obj: any = {};
+    const obj: Record<string, string> = {};
     headers.forEach((h, i) => obj[h] = cols[i] || '');
     return obj;
   });
@@ -27,7 +27,7 @@ describe('Import multipart CSV -> members with audit', () => {
     const app = express();
 
     // simple middleware to expose headers as req.user_id / req.congregacao_id
-    app.use((req: any, _res: any, next: any) => {
+    app.use((req: import('express').Request, _res: import('express').Response, next: import('express').NextFunction) => {
       const uid = req.headers['x-user-id'];
       const cid = req.headers['x-congregacao-id'];
       req.user_id = Array.isArray(uid) ? uid[0] : uid;
@@ -37,8 +37,8 @@ describe('Import multipart CSV -> members with audit', () => {
 
     const upload = multer({ storage: multer.memoryStorage() }).single('file');
 
-    app.post('/import/members', (req: any, res: any) => {
-      upload(req, res, async (err: any) => {
+    app.post('/import/members', (req: import('express').Request, res: import('express').Response) => {
+      upload(req, res, async (err: unknown) => {
         if (err) return res.status(500).json({ message: 'Upload failed' });
         if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
         try {
@@ -48,7 +48,7 @@ describe('Import multipart CSV -> members with audit', () => {
           const auditRepo = TestDataSource.getRepository(AuditLog);
           const created: Partial<Member>[] = [];
           for (const r of rows) {
-            const obj: any = {
+            const obj: Partial<Member> = {
               nome: r.nome || r.name || '',
               telefone: r.telefone || r.phone || undefined,
               cpf: r.cpf || undefined,
@@ -65,6 +65,7 @@ describe('Import multipart CSV -> members with audit', () => {
           }
           res.json({ createdCount: created.length, created });
         } catch (e) {
+          // eslint-disable-next-line no-console
           console.error(e);
           res.status(500).json({ message: 'Failed to import' });
         }
@@ -95,7 +96,7 @@ describe('Import multipart CSV -> members with audit', () => {
   const logs = await auditRepo.find({ where: { resource_type: 'members', action: 'CREATE' } });
     expect(logs.length).toBeGreaterThanOrEqual(2);
     // ensure resource_id links to created members
-    const createdIds = res.body.created.map((c: any) => c.membro_id);
+    const createdIds = res.body.created.map((c: { membro_id: string }) => c.membro_id);
     const idsFromLogs = logs.map(l => l.resource_id);
     for (const id of createdIds) {
       expect(idsFromLogs).toContain(id);

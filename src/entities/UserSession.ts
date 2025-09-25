@@ -17,7 +17,7 @@ export class UserSession {
   refresh_token_hash!: string;
 
   @Column({ type: 'simple-json', nullable: true })
-  device_info?: any;
+  device_info?: Record<string, unknown> | null;
 
   @Column({ type: 'varchar', length: 50, nullable: true })
   ip_address?: string;

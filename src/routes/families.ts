@@ -5,6 +5,7 @@ import { Member } from '../entities/Member';
 import { authorize } from '../middlewares/authorize';
 import { tenantMiddleware } from '../middlewares/tenant';
 import { recordAudit } from '../services/auditService';
+import { logger } from '../utils/logger';
 
 const router = express.Router();
 
@@ -67,7 +68,7 @@ router.get('/', authorize('families', 'read'), async (req, res) => {
       totalPages: Math.ceil(total / limit)
     });
   } catch (error) {
-    console.error('Erro ao listar famílias:', error);
+    logger.error('Erro ao listar famílias:', error);
     res.status(500).json({ error: 'Erro interno do servidor' });
   }
 });
@@ -111,7 +112,7 @@ router.get('/:id', authorize('families', 'read'), async (req, res) => {
 
     res.json(family);
   } catch (error) {
-    console.error('Erro ao buscar família:', error);
+    logger.error('Erro ao buscar família:', error);
     res.status(500).json({ error: 'Erro interno do servidor' });
   }
 });
@@ -183,7 +184,7 @@ router.post('/', authorize('families', 'create'), async (req, res) => {
 
     res.status(201).json(savedFamily);
   } catch (error) {
-    console.error('Erro ao criar família:', error);
+    logger.error('Erro ao criar família:', error);
     res.status(500).json({ error: 'Erro interno do servidor' });
   }
 });
@@ -235,7 +236,7 @@ router.put('/:id', authorize('families', 'update'), async (req, res) => {
 
     res.json(updatedFamily);
   } catch (error) {
-    console.error('Erro ao atualizar família:', error);
+    logger.error('Erro ao atualizar família:', error);
     res.status(500).json({ error: 'Erro interno do servidor' });
   }
 });
@@ -295,7 +296,7 @@ router.delete('/:id', authorize('families', 'delete'), async (req, res) => {
 
     res.json({ message: 'Família excluída com sucesso' });
   } catch (error) {
-    console.error('Erro ao excluir família:', error);
+    logger.error('Erro ao excluir família:', error);
     res.status(500).json({ error: 'Erro interno do servidor' });
   }
 });
