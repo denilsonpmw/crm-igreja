@@ -27,7 +27,7 @@ function createTestAuthRouter() {
     return crypto.createHash('sha256').update(token).digest('hex');
   }
   
-  router.post('/register', async (req: any, res: any) => {
+  router.post('/register', async (req: import('express').Request, res: import('express').Response) => {
     const { nome, email, senha } = req.body;
     if (!email || !senha || !nome) return res.status(400).json({ message: 'Missing fields' });
 
@@ -41,7 +41,7 @@ function createTestAuthRouter() {
     return res.status(201).json({ id: user.usuario_id, nome: user.nome, email: user.email });
   });
 
-  router.post('/login', async (req: any, res: any) => {
+  router.post('/login', async (req: import('express').Request, res: import('express').Response) => {
     const { email, senha } = req.body;
     if (!email || !senha) return res.status(400).json({ message: 'Missing fields' });
 
@@ -67,7 +67,7 @@ function createTestAuthRouter() {
     return res.json({ accessToken, refreshToken });
   });
 
-  router.post('/refresh', async (req: any, res: any) => {
+  router.post('/refresh', async (req: import('express').Request, res: import('express').Response) => {
     const { refreshToken } = req.body;
     if (!refreshToken) return res.status(400).json({ message: 'Missing refreshToken' });
 
@@ -87,7 +87,7 @@ function createTestAuthRouter() {
     return res.json({ accessToken, refreshToken: newRefresh });
   });
 
-  router.post('/logout', async (req: any, res: any) => {
+  router.post('/logout', async (req: import('express').Request, res: import('express').Response) => {
     const { refreshToken } = req.body;
     if (!refreshToken) return res.status(400).json({ message: 'Missing refreshToken' });
 
@@ -108,19 +108,19 @@ function createTestMembersRouter() {
   const router = Router();
   const { authorize } = require('../../middlewares/authorize');
 
-  router.get('/', async (req: any, res: any) => {
+  router.get('/', async (req: import('express').Request, res: import('express').Response) => {
     const repo = TestDataSource.getRepository(Member);
-    const where: any = {};
+  const where: Record<string, unknown> = {};
     if (req.congregacao_id) where.congregacao_id = req.congregacao_id;
     const items = await repo.find({ where });
     res.json(items);
   });
 
-  router.post('/', authorize('members', 'create'), async (req: any, res: any) => {
+  router.post('/', authorize('members', 'create'), async (req: import('express').Request, res: import('express').Response) => {
     const { nome, cpf, telefone } = req.body;
     if (!nome) return res.status(400).json({ message: 'Missing nome' });
     const repo = TestDataSource.getRepository(Member);
-    const data: any = { nome, cpf, telefone };
+  const data: Record<string, unknown> = { nome, cpf, telefone };
     if (req.congregacao_id) data.congregacao_id = req.congregacao_id;
     if (req.user_id) data.created_by = req.user_id;
     const m = repo.create(data);
@@ -129,9 +129,9 @@ function createTestMembersRouter() {
   });
 
   // update
-  router.put('/:id', authorize('members', 'update'), async (req: any, res: any) => {
+  router.put('/:id', authorize('members', 'update'), async (req: import('express').Request, res: import('express').Response) => {
     const repo = TestDataSource.getRepository(Member);
-    const member = await repo.findOne({ where: { membro_id: req.params.id } as any });
+  const member = await repo.findOne({ where: { membro_id: req.params.id } });
     if (!member) return res.status(404).json({ message: 'Member not found' });
 
     if (req.congregacao_id && member.congregacao_id !== req.congregacao_id) {
@@ -147,9 +147,9 @@ function createTestMembersRouter() {
   });
 
   // delete
-  router.delete('/:id', authorize('members', 'delete'), async (req: any, res: any) => {
+  router.delete('/:id', authorize('members', 'delete'), async (req: import('express').Request, res: import('express').Response) => {
     const repo = TestDataSource.getRepository(Member);
-    const member = await repo.findOne({ where: { membro_id: req.params.id } as any });
+  const member = await repo.findOne({ where: { membro_id: req.params.id } });
     if (!member) return res.status(404).json({ message: 'Member not found' });
 
     if (req.congregacao_id && member.congregacao_id !== req.congregacao_id) {
@@ -169,14 +169,14 @@ export function createTestApp() {
   // aplicar middleware de tenant nos testes para simular comportamento de produção
   app.use(tenantMiddleware);
   // middleware de simulação de auth: pega x-user-id e anexa a req.user_id
-  app.use(async (req: any, _res: any, next: any) => {
+  app.use(async (req: import('express').Request, _res: import('express').Response, next: import('express').NextFunction) => {
     // Garantir que, se o header de congregação for passado, exista uma entrada correspondente
     const cid = req.headers['x-congregacao-id'];
     if (cid) {
       const idVal = Array.isArray(cid) ? cid[0] : cid;
       try {
         const congRepo = TestDataSource.getRepository(Congregacao);
-        let c = await congRepo.findOne({ where: { congregacao_id: idVal } as any });
+  let c = await congRepo.findOne({ where: { congregacao_id: idVal } });
         if (!c) {
           c = congRepo.create({ congregacao_id: idVal, nome: 'Test Congregacao ' + idVal });
           try { await congRepo.save(c); } catch (e) { /* ignore save errors */ }
@@ -211,7 +211,7 @@ export function createTestApp() {
   function createTestRolesRouter() {
     const { Router } = require('express');
     const router = Router();
-    router.post('/roles', async (req: any, res: any) => {
+  router.post('/roles', async (req: import('express').Request, res: import('express').Response) => {
       const { name, permissions } = req.body;
       if (!name) return res.status(400).json({ message: 'Missing name' });
       const repo = TestDataSource.getRepository(require('../../entities/Role').Role);
@@ -222,7 +222,7 @@ export function createTestApp() {
       res.status(201).json(r);
     });
 
-    router.post('/users/:id/roles', async (req: any, res: any) => {
+  router.post('/users/:id/roles', async (req: import('express').Request, res: import('express').Response) => {
       const userRepo = TestDataSource.getRepository(require('../../entities/User').User);
       const roleRepo = TestDataSource.getRepository(require('../../entities/Role').Role);
       const u = await userRepo.findOne({ where: { usuario_id: req.params.id } });
@@ -245,12 +245,12 @@ export function createTestApp() {
   function createTestCongregationsRouter() {
     const { Router } = require('express');
     const router = Router();
-    router.get('/', async (req: any, res: any) => {
+  router.get('/', async (req: import('express').Request, res: import('express').Response) => {
       const repo = TestDataSource.getRepository(Congregacao);
       const items = await repo.find();
       res.json(items);
     });
-  router.post('/', async (req: any, res: any) => {
+  router.post('/', async (req: import('express').Request, res: import('express').Response) => {
       const {
         nome, endereco, telefone, email, plano,
         website, cnpj, pastor_principal,

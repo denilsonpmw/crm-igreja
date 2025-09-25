@@ -32,7 +32,7 @@ describe('Real /import/members route with TestDataSource', () => {
     const congRepo = TestDataSource.getRepository(require('../entities/Congregacao').Congregacao);
     const cid = '00000000-0000-0000-0000-000000000002';
     (async () => {
-      let c = await congRepo.findOne({ where: { congregacao_id: cid } as any });
+  let c = await congRepo.findOne({ where: { congregacao_id: cid } });
       if (!c) { c = congRepo.create({ congregacao_id: cid, nome: 'Test Cong 2' }); await congRepo.save(c); }
     })();
     app.use('/import', importRouter);
@@ -55,7 +55,7 @@ describe('Real /import/members route with TestDataSource', () => {
     expect(res.body).toHaveProperty('createdCount', 2);
 
     const auditRepo = TestDataSource.getRepository(require('../entities/AuditLog').AuditLog);
-    const logs = await auditRepo.find({ where: { resource_type: 'members', action: 'CREATE' } as any });
+  const logs = await auditRepo.find({ where: { resource_type: 'members', action: 'CREATE' } });
     expect(logs.length).toBeGreaterThanOrEqual(2);
   });
 });

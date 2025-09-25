@@ -56,11 +56,11 @@ describe('Import multipart CSV -> members with audit', () => {
               created_by: req.user_id || null
             };
             if (!obj.nome) continue;
-            const m = memberRepo.create(obj as any);
+            const m = memberRepo.create(obj);
             const saved = await memberRepo.save(m);
             created.push(saved as Partial<Member>);
             // create audit
-            const a = auditRepo.create({ user_id: req.user_id || null, congregacao_id: req.congregacao_id || null, action: 'CREATE', resource_type: 'members', resource_id: (saved as any).membro_id, new_values: saved, success: true } as any);
+            const a = auditRepo.create({ user_id: req.user_id || null, congregacao_id: req.congregacao_id || null, action: 'CREATE', resource_type: 'members', resource_id: (saved as unknown as { membro_id: string }).membro_id, new_values: saved, success: true });
             await auditRepo.save(a);
           }
           res.json({ createdCount: created.length, created });
@@ -76,7 +76,7 @@ describe('Import multipart CSV -> members with audit', () => {
     // Garantir que a congregacao de teste exista
     const congRepo = TestDataSource.getRepository(require('../entities/Congregacao').Congregacao);
     const congId = '00000000-0000-0000-0000-000000000001';
-    let existing = await congRepo.findOne({ where: { congregacao_id: congId } as any });
+  let existing = await congRepo.findOne({ where: { congregacao_id: congId } });
     if (!existing) {
       existing = congRepo.create({ congregacao_id: congId, nome: 'Test Congregacao 1' });
       await congRepo.save(existing);
@@ -92,7 +92,7 @@ describe('Import multipart CSV -> members with audit', () => {
     expect(res.body).toHaveProperty('createdCount', 2);
 
     const auditRepo = TestDataSource.getRepository(AuditLog);
-    const logs = await auditRepo.find({ where: { resource_type: 'members', action: 'CREATE' } as any });
+  const logs = await auditRepo.find({ where: { resource_type: 'members', action: 'CREATE' } });
     expect(logs.length).toBeGreaterThanOrEqual(2);
     // ensure resource_id links to created members
     const createdIds = res.body.created.map((c: any) => c.membro_id);

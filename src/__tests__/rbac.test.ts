@@ -3,7 +3,7 @@ import { createTestApp } from './helpers/testApp';
 import { TestDataSource } from './helpers/testDataSource';
 
 describe('RBAC basic flow', () => {
-  let app: any;
+  let app: import('express').Application;
   beforeAll(() => {
     app = createTestApp();
   });

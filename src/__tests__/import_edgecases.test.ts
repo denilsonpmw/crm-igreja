@@ -15,12 +15,12 @@ describe('Import route edge cases', () => {
     const importRouter = require('../routes/imports').default;
     const app = express();
     // Garantir que a congregacao do header exista no banco de teste (middleware deve rodar antes do router)
-    app.use(async (req: any, _res: any, next: any) => {
+  app.use(async (req: import('express').Request, _res: import('express').Response, next: import('express').NextFunction) => {
       const cid = req.headers['x-congregacao-id'];
       if (cid) {
         const idVal = Array.isArray(cid) ? cid[0] : cid;
         const congRepo = TestDataSource.getRepository(require('../entities/Congregacao').Congregacao);
-        let c = await congRepo.findOne({ where: { congregacao_id: idVal } as any });
+  let c = await congRepo.findOne({ where: { congregacao_id: idVal } });
         if (!c) {
           c = congRepo.create({ congregacao_id: idVal, nome: 'Test Congregacao ' + idVal });
           try { await congRepo.save(c); } catch (e) { /* ignore */ }
@@ -28,9 +28,11 @@ describe('Import route edge cases', () => {
       }
       next();
     });
-    app.use((req: any, _res: any, next: any) => {
-      req.user_id = req.headers['x-user-id'] || null;
-      req.congregacao_id = req.headers['x-congregacao-id'] || null;
+  app.use((req: import('express').Request, _res: import('express').Response, next: import('express').NextFunction) => {
+  const userIdHeader = req.headers['x-user-id'];
+  req.user_id = Array.isArray(userIdHeader) ? userIdHeader[0] : userIdHeader || null;
+  const congIdHeader = req.headers['x-congregacao-id'];
+  req.congregacao_id = Array.isArray(congIdHeader) ? congIdHeader[0] : congIdHeader || null;
       next();
     });
     app.use('/import', importRouter);
@@ -66,7 +68,7 @@ describe('Import route edge cases', () => {
     expect(res.body).toHaveProperty('createdCount', 2);
 
     const auditRepo = TestDataSource.getRepository(require('../entities/AuditLog').AuditLog);
-    const logs = await auditRepo.find({ where: { resource_type: 'members', action: 'CREATE' } as any });
+  const logs = await auditRepo.find({ where: { resource_type: 'members', action: 'CREATE' } });
     // At least 2 audit logs for the 2 created members
     expect(logs.length).toBeGreaterThanOrEqual(2);
   });
@@ -91,14 +93,14 @@ describe('Import route edge cases', () => {
     expect(res.body).toHaveProperty('skippedCount', 1);
 
     const memberRepo = TestDataSource.getRepository(require('../entities/Member').Member);
-    const members = await memberRepo.find({ where: { nome: 'Dup' } as any });
+  const members = await memberRepo.find({ where: { nome: 'Dup' } });
     // Only one member should exist for the duplicated CPF
     expect(members.length).toBeGreaterThanOrEqual(1);
     expect(members.length).toBeLessThanOrEqual(1);
 
     const auditRepo = TestDataSource.getRepository(require('../entities/AuditLog').AuditLog);
-    const createLogs = await auditRepo.find({ where: { resource_type: 'members', action: 'CREATE' } as any });
-    const dupLogs = await auditRepo.find({ where: { resource_type: 'members', action: 'DUPLICATE_SKIPPED' } as any });
+  const createLogs = await auditRepo.find({ where: { resource_type: 'members', action: 'CREATE' } });
+  const dupLogs = await auditRepo.find({ where: { resource_type: 'members', action: 'DUPLICATE_SKIPPED' } });
     // There should be one create and one duplicate-skipped audit
     expect(createLogs.length).toBeGreaterThanOrEqual(1);
     expect(dupLogs.length).toBeGreaterThanOrEqual(1);

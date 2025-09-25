@@ -2,7 +2,7 @@ import request from 'supertest'
 import { createTestApp } from './helpers/testApp'
 import { TestDataSource } from './helpers/testDataSource'
 
-let app: any
+let app: import('express').Application;
 
 beforeAll(() => {
   // jest.setup.ts já inicializa o TestDataSource

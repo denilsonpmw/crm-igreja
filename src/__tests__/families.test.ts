@@ -8,7 +8,7 @@ import { User } from '../entities/User';
 describe('Families System', () => {
   let congregacao: Congregacao;
   let user: User;
-  let app: any;
+  let app: import('express').Application;
 
   beforeAll(async () => {
     // TestDataSource já foi inicializado no jest.setup.ts

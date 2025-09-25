@@ -16,7 +16,7 @@ describe('Audit service and route', () => {
 
     const app = express();
     app.get('/audit/audit-logs', async (req, res) => {
-      const items = await repo.find({ order: { created_at: 'DESC' } as any });
+  const items = await repo.find({ order: { created_at: 'DESC' } });
       res.json(items);
     });
 

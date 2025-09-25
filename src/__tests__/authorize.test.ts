@@ -3,7 +3,7 @@ import { createTestApp } from './helpers/testApp';
 import { TestDataSource } from './helpers/testDataSource';
 
 describe('authorize middleware integration', () => {
-  let app: any;
+  let app: import('express').Application;
   beforeAll(() => {
     app = createTestApp();
   });
