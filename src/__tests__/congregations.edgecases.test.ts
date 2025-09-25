@@ -5,11 +5,8 @@ import { createTestApp } from './helpers/testApp';
 describe('Edge cases - Congregação', () => {
   let app: any;
   beforeAll(async () => {
-    if (!TestDataSource.isInitialized) await TestDataSource.initialize();
+    // TestDataSource já foi inicializado no jest.setup.ts
     app = await createTestApp();
-  });
-  afterAll(async () => {
-    if (TestDataSource.isInitialized) await TestDataSource.destroy();
   });
 
   it('não deve criar sem nome', async () => {

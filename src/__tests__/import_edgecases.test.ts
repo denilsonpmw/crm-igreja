@@ -6,12 +6,7 @@ import { TestDataSource } from './helpers/testDataSource';
 
 describe('Import route edge cases', () => {
   beforeAll(async () => {
-    if (TestDataSource.isInitialized) await TestDataSource.destroy();
-    await TestDataSource.initialize();
-  });
-
-  afterAll(async () => {
-    await TestDataSource.destroy();
+    // TestDataSource já foi inicializado no jest.setup.ts
   });
 
   function mountImportRouter() {

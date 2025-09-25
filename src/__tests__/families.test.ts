@@ -1,4 +1,5 @@
-import { AppDataSource } from '../data-source';
+import { TestDataSource } from './helpers/testDataSource';
+import { createTestApp } from './helpers/testApp';
 import { Family } from '../entities/Family';
 import { Member } from '../entities/Member';
 import { Congregacao } from '../entities/Congregacao';
@@ -7,36 +8,37 @@ import { User } from '../entities/User';
 describe('Families System', () => {
   let congregacao: Congregacao;
   let user: User;
+  let app: any;
 
   beforeAll(async () => {
-    // Inicializar conexão com banco de teste
-    if (!AppDataSource.isInitialized) {
-      await AppDataSource.initialize();
-    }
-  });
-
-  afterAll(async () => {
-    if (AppDataSource.isInitialized) {
-      await AppDataSource.destroy();
-    }
+    // TestDataSource já foi inicializado no jest.setup.ts
+    app = await createTestApp();
   });
 
   beforeEach(async () => {
-    // Reinicializar datasource para garantir schema limpo entre testes
-    if (AppDataSource.isInitialized) {
-      await AppDataSource.destroy();
+    // Limpar dados entre testes sem reinicializar o DataSource
+    if (TestDataSource.isInitialized) {
+      if (process.env.DATABASE_URL) {
+        // Para Postgres, limpar tabelas manualmente
+        const entities = TestDataSource.entityMetadatas;
+        for (const entity of entities.reverse()) {
+          await TestDataSource.query(`DELETE FROM "${entity.tableName}"`);
+        }
+      } else {
+        // Para SQLite em memória, pode usar synchronize
+        await TestDataSource.synchronize(true);
+      }
     }
-    await AppDataSource.initialize();
 
     // Criar congregação de teste
-    const congregacaoRepo = AppDataSource.getRepository(Congregacao);
+    const congregacaoRepo = TestDataSource.getRepository(Congregacao);
     congregacao = new Congregacao();
     congregacao.nome = 'Igreja Teste';
     congregacao.endereco = 'Rua Teste, 123';
     await congregacaoRepo.save(congregacao);
 
     // Criar usuário de teste
-    const userRepo = AppDataSource.getRepository(User);
+    const userRepo = TestDataSource.getRepository(User);
     user = new User();
     user.nome = 'Admin Teste';
     user.email = 'admin@teste.com';
@@ -47,7 +49,7 @@ describe('Families System', () => {
 
   describe('Family Entity', () => {
     it('deve criar uma nova família com sucesso', async () => {
-      const familyRepo = AppDataSource.getRepository(Family);
+      const familyRepo = TestDataSource.getRepository(Family);
       const family = new Family();
       family.congregacao_id = congregacao.congregacao_id;
       family.nome_familia = 'Família Silva';
@@ -67,7 +69,7 @@ describe('Families System', () => {
     });
 
     it('deve falhar ao criar família sem nome obrigatório', async () => {
-      const familyRepo = AppDataSource.getRepository(Family);
+      const familyRepo = TestDataSource.getRepository(Family);
       
       try {
         const family = new Family();
@@ -84,7 +86,7 @@ describe('Families System', () => {
     });
 
     it('deve permitir criar múltiplas famílias na mesma congregação', async () => {
-      const familyRepo = AppDataSource.getRepository(Family);
+      const familyRepo = TestDataSource.getRepository(Family);
       
       // Criar primeira família
       const family1 = new Family();
@@ -110,7 +112,7 @@ describe('Families System', () => {
     let family: Family;
 
     beforeEach(async () => {
-      const familyRepo = AppDataSource.getRepository(Family);
+      const familyRepo = TestDataSource.getRepository(Family);
       family = new Family();
       family.nome_familia = 'Família Métodos';
       family.endereco = 'Rua Teste, 123';
@@ -121,7 +123,7 @@ describe('Families System', () => {
       await familyRepo.save(family);
 
       // Adicionar alguns membros simulados
-      const memberRepo = AppDataSource.getRepository(Member);
+      const memberRepo = TestDataSource.getRepository(Member);
       
       const member1 = new Member();
       member1.nome = 'João Silva';
@@ -171,7 +173,7 @@ describe('Families System', () => {
     let family: Family;
 
     beforeEach(async () => {
-      const familyRepo = AppDataSource.getRepository(Family);
+      const familyRepo = TestDataSource.getRepository(Family);
       family = new Family();
       family.nome_familia = 'Família Relacionamento';
       family.congregacao_id = congregacao.congregacao_id;
@@ -179,7 +181,7 @@ describe('Families System', () => {
     });
 
     it('deve criar membro vinculado à família', async () => {
-      const memberRepo = AppDataSource.getRepository(Member);
+      const memberRepo = TestDataSource.getRepository(Member);
       const member = new Member();
       member.nome = 'Maria Silva';
       member.familia_id = family.familia_id;
@@ -196,7 +198,7 @@ describe('Families System', () => {
 
     it('deve carregar família com seus membros', async () => {
       // Criar alguns membros
-      const memberRepo = AppDataSource.getRepository(Member);
+      const memberRepo = TestDataSource.getRepository(Member);
       
       const member1 = new Member();
       member1.nome = 'João Silva';
@@ -215,7 +217,7 @@ describe('Families System', () => {
       await memberRepo.save(member2);
 
       // Carregar família com membros
-      const familyRepo = AppDataSource.getRepository(Family);
+      const familyRepo = TestDataSource.getRepository(Family);
       const familyWithMembers = await familyRepo.findOne({
         where: { familia_id: family.familia_id },
         relations: ['membros']
@@ -228,7 +230,7 @@ describe('Families System', () => {
 
     it('deve impedir exclusão de família com membros ativos', async () => {
       // Criar membro ativo na família
-      const memberRepo = AppDataSource.getRepository(Member);
+      const memberRepo = TestDataSource.getRepository(Member);
       const member = new Member();
       member.nome = 'João Silva';
       member.familia_id = family.familia_id;
@@ -252,7 +254,7 @@ describe('Families System', () => {
   describe('Family Queries', () => {
     beforeEach(async () => {
       // Criar famílias de teste
-      const familyRepo = AppDataSource.getRepository(Family);
+      const familyRepo = TestDataSource.getRepository(Family);
       
       const families = [
         { nome_familia: 'Família Silva', cidade: 'São Paulo' },
@@ -270,7 +272,7 @@ describe('Families System', () => {
     });
 
     it('deve listar todas as famílias da congregação', async () => {
-      const familyRepo = AppDataSource.getRepository(Family);
+      const familyRepo = TestDataSource.getRepository(Family);
       const families = await familyRepo.find({
         where: { congregacao_id: congregacao.congregacao_id },
         order: { nome_familia: 'ASC' }
@@ -283,7 +285,7 @@ describe('Families System', () => {
     });
 
     it('deve filtrar famílias por busca', async () => {
-      const familyRepo = AppDataSource.getRepository(Family);
+      const familyRepo = TestDataSource.getRepository(Family);
       const families = await familyRepo
         .createQueryBuilder('family')
         .where('family.congregacao_id = :congregacao_id', { congregacao_id: congregacao.congregacao_id })

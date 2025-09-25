@@ -19,7 +19,7 @@ export const AppDataSource = new DataSource(
     ? {
         type: 'postgres',
         url: process.env.DATABASE_URL,
-        synchronize: true,
+        synchronize: false, // Desabilitado para usar migrations em produção
         logging: false,
         entities: [path.join(__dirname, 'entities', `*.${entityExtension}`)],
         migrations: [
@@ -30,7 +30,7 @@ export const AppDataSource = new DataSource(
     : {
         type: 'sqlite',
         database: path.join(process.cwd(), 'dev.sqlite'),
-        synchronize: true,
+        synchronize: true, // SQLite local pode usar synchronize
         logging: false,
         entities: [path.join(__dirname, 'entities', `*.${entityExtension}`)]
       } as any

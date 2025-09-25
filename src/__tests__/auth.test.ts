@@ -6,17 +6,8 @@ describe('Endpoints de Autenticação', () => {
   let app: any;
 
   beforeAll(async () => {
-    // Inicializar DataSource de teste
-    if (!TestDataSource.isInitialized) {
-      await TestDataSource.initialize();
-    }
+    // TestDataSource já foi inicializado no jest.setup.ts
     app = createTestApp();
-  });
-
-  afterAll(async () => {
-    if (TestDataSource.isInitialized) {
-      await TestDataSource.destroy();
-    }
   });
 
   beforeEach(async () => {

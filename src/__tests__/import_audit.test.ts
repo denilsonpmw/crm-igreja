@@ -5,14 +5,7 @@ import { AuditLog } from '../entities/AuditLog';
 
 describe('Audit service and route', () => {
   beforeAll(async () => {
-    if (TestDataSource.isInitialized) {
-      await TestDataSource.destroy();
-    }
-    await TestDataSource.initialize();
-  });
-
-  afterAll(async () => {
-    await TestDataSource.destroy();
+    // TestDataSource já foi inicializado no jest.setup.ts
   });
 
   it('creates and lists audit logs', async () => {

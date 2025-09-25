@@ -46,6 +46,13 @@ const PORT = Number(process.env.PORT) || 3001;
 export async function startServer(port: number = PORT) {
   try {
     await AppDataSource.initialize();
+    
+    // Se usando Postgres, executar migrations
+    if (process.env.DATABASE_URL) {
+      await AppDataSource.runMigrations();
+      console.log('Database migrations executed successfully');
+    }
+    
     return new Promise<void>((resolve) => {
       app.listen(port, () => {
         console.log(`Server running on port ${port}`);

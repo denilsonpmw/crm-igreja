@@ -5,12 +5,8 @@ import { createTestApp } from './helpers/testApp';
 let app: any;
 
 beforeAll(async () => {
-  if (!TestDataSource.isInitialized) await TestDataSource.initialize();
+  // TestDataSource já foi inicializado no jest.setup.ts
   app = await createTestApp();
-});
-
-afterAll(async () => {
-  if (TestDataSource.isInitialized) await TestDataSource.destroy();
 });
 
 test('CRUD de congregações com campos expandidos', async () => {

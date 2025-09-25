@@ -20,12 +20,7 @@ function parseCsv(content: string) {
 
 describe('Import multipart CSV -> members with audit', () => {
   beforeAll(async () => {
-    if (TestDataSource.isInitialized) await TestDataSource.destroy();
-    await TestDataSource.initialize();
-  });
-
-  afterAll(async () => {
-    await TestDataSource.destroy();
+    // TestDataSource já foi inicializado no jest.setup.ts
   });
 
   it('imports CSV and creates audit entries', async () => {
