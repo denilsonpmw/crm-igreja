@@ -1,3 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 /* Estilos básicos sem Tailwind para demonstração */
 body {
   margin: 0;
