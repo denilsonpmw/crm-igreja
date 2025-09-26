@@ -14,7 +14,7 @@ export class User {
   @Column()
   senha_hash!: string;
 
-  @Column({ type: 'simple-json', nullable: false, default: '[]' })
+  @Column({ type: 'jsonb', nullable: false, default: () => "'[]'::jsonb" })
   roles!: string[];
 
   @Column({ type: 'boolean', default: true })

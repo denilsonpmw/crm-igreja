@@ -8,12 +8,12 @@ interface Permission {
 @Entity('roles')
 export class Role {
   @PrimaryGeneratedColumn('uuid')
-  role_id!: string;
+  id!: string;
 
   @Column({ length: 100, unique: true })
   name!: string;
 
-  @Column({ type: 'simple-json', default: '[]' })
+  @Column({ type: 'jsonb', default: () => "'[]'::jsonb" })
   permissions!: Permission[];
 
   @CreateDateColumn()

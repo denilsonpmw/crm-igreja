@@ -1,0 +1,128 @@
+import { MigrationInterface, QueryRunner } from "typeorm";
+
+export class FixUserRolesJsonb1758807631861 implements MigrationInterface {
+    name = 'FixUserRolesJsonb1758807631861'
+
+    public async up(queryRunner: QueryRunner): Promise<void> {
+        await queryRunner.query(`ALTER TABLE "user_sessions" DROP CONSTRAINT "user_sessions_user_id_fkey"`);
+        await queryRunner.query(`ALTER TABLE "usuarios" DROP COLUMN "congregacao_id"`);
+        await queryRunner.query(`ALTER TABLE "usuarios" DROP COLUMN "avatar_url"`);
+        await queryRunner.query(`ALTER TABLE "usuarios" DROP COLUMN "telefone"`);
+        await queryRunner.query(`ALTER TABLE "usuarios" DROP COLUMN "ultimo_login"`);
+        await queryRunner.query(`ALTER TABLE "usuarios" DROP COLUMN "email_verificado"`);
+        await queryRunner.query(`ALTER TABLE "usuarios" DROP COLUMN "reset_token"`);
+        await queryRunner.query(`ALTER TABLE "usuarios" DROP COLUMN "reset_token_expiry"`);
+        await queryRunner.query(`ALTER TABLE "user_sessions" DROP COLUMN "congregacao_id"`);
+        await queryRunner.query(`ALTER TABLE "roles" DROP COLUMN "description"`);
+        await queryRunner.query(`ALTER TABLE "roles" DROP COLUMN "active"`);
+        await queryRunner.query(`ALTER TABLE "familias" DROP COLUMN "bairro"`);
+        await queryRunner.query(`ALTER TABLE "familias" DROP COLUMN "telefone"`);
+        await queryRunner.query(`ALTER TABLE "familias" DROP COLUMN "created_by"`);
+        await queryRunner.query(`ALTER TABLE "congregacoes" ADD "created_by" uuid`);
+        await queryRunner.query(`ALTER TABLE "familias" ADD "telefone_principal" character varying(20)`);
+        await queryRunner.query(`ALTER TABLE "familias" ADD "responsavel_id" uuid`);
+        await queryRunner.query(`ALTER TABLE "audit_logs" ADD "session_id" uuid`);
+        await queryRunner.query(`ALTER TABLE "usuarios" DROP COLUMN "senha_hash"`);
+        await queryRunner.query(`ALTER TABLE "usuarios" ADD "senha_hash" character varying NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "usuarios" DROP COLUMN "roles"`);
+        await queryRunner.query(`ALTER TABLE "usuarios" ADD "roles" jsonb NOT NULL DEFAULT '[]'::jsonb`);
+        await queryRunner.query(`ALTER TABLE "usuarios" ALTER COLUMN "ativo" SET NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "usuarios" ALTER COLUMN "created_at" SET NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "usuarios" ALTER COLUMN "updated_at" SET NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "user_sessions" ALTER COLUMN "user_id" SET NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "user_sessions" DROP COLUMN "device_info"`);
+        await queryRunner.query(`ALTER TABLE "user_sessions" ADD "device_info" text`);
+        await queryRunner.query(`ALTER TABLE "user_sessions" DROP COLUMN "ip_address"`);
+        await queryRunner.query(`ALTER TABLE "user_sessions" ADD "ip_address" character varying(50)`);
+        await queryRunner.query(`ALTER TABLE "user_sessions" ALTER COLUMN "revoked" SET NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "user_sessions" ALTER COLUMN "created_at" SET NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "roles" ADD CONSTRAINT "UQ_648e3f5447f725579d7d4ffdfb7" UNIQUE ("name")`);
+        await queryRunner.query(`ALTER TABLE "roles" ALTER COLUMN "permissions" SET NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "roles" ALTER COLUMN "permissions" SET DEFAULT '[]'::jsonb`);
+        await queryRunner.query(`ALTER TABLE "roles" ALTER COLUMN "created_at" SET NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "roles" ALTER COLUMN "updated_at" SET NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "congregacoes" ALTER COLUMN "plano" SET NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "congregacoes" ALTER COLUMN "limite_membros" SET NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "congregacoes" ALTER COLUMN "limite_storage_mb" SET NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "congregacoes" ALTER COLUMN "limite_mensagens_mes" SET NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "congregacoes" ALTER COLUMN "ativo" SET NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "congregacoes" DROP COLUMN "configuracoes"`);
+        await queryRunner.query(`ALTER TABLE "congregacoes" ADD "configuracoes" text`);
+        await queryRunner.query(`ALTER TABLE "congregacoes" ALTER COLUMN "created_at" SET NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "congregacoes" ALTER COLUMN "updated_at" SET NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "familias" ALTER COLUMN "created_at" SET DEFAULT now()`);
+        await queryRunner.query(`ALTER TABLE "familias" ALTER COLUMN "updated_at" SET DEFAULT now()`);
+        await queryRunner.query(`ALTER TABLE "membros" ALTER COLUMN "membro_id" SET DEFAULT uuid_generate_v4()`);
+        await queryRunner.query(`ALTER TABLE "audit_logs" DROP COLUMN "old_values"`);
+        await queryRunner.query(`ALTER TABLE "audit_logs" ADD "old_values" json`);
+        await queryRunner.query(`ALTER TABLE "audit_logs" DROP COLUMN "new_values"`);
+        await queryRunner.query(`ALTER TABLE "audit_logs" ADD "new_values" json`);
+        await queryRunner.query(`ALTER TABLE "audit_logs" DROP COLUMN "ip_address"`);
+        await queryRunner.query(`ALTER TABLE "audit_logs" ADD "ip_address" character varying`);
+        await queryRunner.query(`ALTER TABLE "audit_logs" ALTER COLUMN "success" SET NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "audit_logs" ALTER COLUMN "created_at" SET NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "user_sessions" ADD CONSTRAINT "FK_e9658e959c490b0a634dfc54783" FOREIGN KEY ("user_id") REFERENCES "usuarios"("usuario_id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
+    }
+
+    public async down(queryRunner: QueryRunner): Promise<void> {
+        await queryRunner.query(`ALTER TABLE "user_sessions" DROP CONSTRAINT "FK_e9658e959c490b0a634dfc54783"`);
+        await queryRunner.query(`ALTER TABLE "audit_logs" ALTER COLUMN "created_at" DROP NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "audit_logs" ALTER COLUMN "success" DROP NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "audit_logs" DROP COLUMN "ip_address"`);
+        await queryRunner.query(`ALTER TABLE "audit_logs" ADD "ip_address" inet`);
+        await queryRunner.query(`ALTER TABLE "audit_logs" DROP COLUMN "new_values"`);
+        await queryRunner.query(`ALTER TABLE "audit_logs" ADD "new_values" jsonb`);
+        await queryRunner.query(`ALTER TABLE "audit_logs" DROP COLUMN "old_values"`);
+        await queryRunner.query(`ALTER TABLE "audit_logs" ADD "old_values" jsonb`);
+        await queryRunner.query(`ALTER TABLE "membros" ALTER COLUMN "membro_id" DROP DEFAULT`);
+        await queryRunner.query(`ALTER TABLE "familias" ALTER COLUMN "updated_at" SET DEFAULT CURRENT_TIMESTAMP`);
+        await queryRunner.query(`ALTER TABLE "familias" ALTER COLUMN "created_at" SET DEFAULT CURRENT_TIMESTAMP`);
+        await queryRunner.query(`ALTER TABLE "congregacoes" ALTER COLUMN "updated_at" DROP NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "congregacoes" ALTER COLUMN "created_at" DROP NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "congregacoes" DROP COLUMN "configuracoes"`);
+        await queryRunner.query(`ALTER TABLE "congregacoes" ADD "configuracoes" jsonb DEFAULT '{}'`);
+        await queryRunner.query(`ALTER TABLE "congregacoes" ALTER COLUMN "ativo" DROP NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "congregacoes" ALTER COLUMN "limite_mensagens_mes" DROP NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "congregacoes" ALTER COLUMN "limite_storage_mb" DROP NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "congregacoes" ALTER COLUMN "limite_membros" DROP NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "congregacoes" ALTER COLUMN "plano" DROP NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "roles" ALTER COLUMN "updated_at" DROP NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "roles" ALTER COLUMN "created_at" DROP NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "roles" ALTER COLUMN "permissions" SET DEFAULT '[]'`);
+        await queryRunner.query(`ALTER TABLE "roles" ALTER COLUMN "permissions" DROP NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "roles" DROP CONSTRAINT "UQ_648e3f5447f725579d7d4ffdfb7"`);
+        await queryRunner.query(`ALTER TABLE "user_sessions" ALTER COLUMN "created_at" DROP NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "user_sessions" ALTER COLUMN "revoked" DROP NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "user_sessions" DROP COLUMN "ip_address"`);
+        await queryRunner.query(`ALTER TABLE "user_sessions" ADD "ip_address" inet`);
+        await queryRunner.query(`ALTER TABLE "user_sessions" DROP COLUMN "device_info"`);
+        await queryRunner.query(`ALTER TABLE "user_sessions" ADD "device_info" jsonb`);
+        await queryRunner.query(`ALTER TABLE "user_sessions" ALTER COLUMN "user_id" DROP NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "usuarios" ALTER COLUMN "updated_at" DROP NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "usuarios" ALTER COLUMN "created_at" DROP NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "usuarios" ALTER COLUMN "ativo" DROP NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "usuarios" DROP COLUMN "roles"`);
+        await queryRunner.query(`ALTER TABLE "usuarios" ADD "roles" text array NOT NULL DEFAULT '{}'`);
+        await queryRunner.query(`ALTER TABLE "usuarios" DROP COLUMN "senha_hash"`);
+        await queryRunner.query(`ALTER TABLE "usuarios" ADD "senha_hash" character varying(255) NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "audit_logs" DROP COLUMN "session_id"`);
+        await queryRunner.query(`ALTER TABLE "familias" DROP COLUMN "responsavel_id"`);
+        await queryRunner.query(`ALTER TABLE "familias" DROP COLUMN "telefone_principal"`);
+        await queryRunner.query(`ALTER TABLE "congregacoes" DROP COLUMN "created_by"`);
+        await queryRunner.query(`ALTER TABLE "familias" ADD "created_by" uuid`);
+        await queryRunner.query(`ALTER TABLE "familias" ADD "telefone" character varying(20)`);
+        await queryRunner.query(`ALTER TABLE "familias" ADD "bairro" character varying(100)`);
+        await queryRunner.query(`ALTER TABLE "roles" ADD "active" boolean DEFAULT true`);
+        await queryRunner.query(`ALTER TABLE "roles" ADD "description" text`);
+        await queryRunner.query(`ALTER TABLE "user_sessions" ADD "congregacao_id" uuid`);
+        await queryRunner.query(`ALTER TABLE "usuarios" ADD "reset_token_expiry" TIMESTAMP`);
+        await queryRunner.query(`ALTER TABLE "usuarios" ADD "reset_token" character varying(255)`);
+        await queryRunner.query(`ALTER TABLE "usuarios" ADD "email_verificado" boolean DEFAULT false`);
+        await queryRunner.query(`ALTER TABLE "usuarios" ADD "ultimo_login" TIMESTAMP`);
+        await queryRunner.query(`ALTER TABLE "usuarios" ADD "telefone" character varying(20)`);
+        await queryRunner.query(`ALTER TABLE "usuarios" ADD "avatar_url" text`);
+        await queryRunner.query(`ALTER TABLE "usuarios" ADD "congregacao_id" uuid`);
+        await queryRunner.query(`ALTER TABLE "user_sessions" ADD CONSTRAINT "user_sessions_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "usuarios"("usuario_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
+    }
+
+}
