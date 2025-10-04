@@ -42,11 +42,18 @@ export function authorize(resource: string, action: string) {
         return res.status(401).json({ message: 'Unauthorized' });
       }
 
-      // Preferir roles/permissions vindos do JWT (res.locals) quando disponíveis — evita depender
-      // de uma leitura imediata do banco que pode falhar em cenários de teste onde a sincronização
-      // do DB esteja em andamento.
-      const rolesFromJwt: string[] = (res.locals && res.locals.roles) ? res.locals.roles : (req as any).roles || [];
-      const permsFromJwt: any[] = (res.locals && res.locals.permissions) ? res.locals.permissions : (req as any).permissions || [];
+  // Preferir roles/permissions vindos do JWT (res.locals) quando disponíveis — evita depender
+  // de uma leitura imediata do banco que pode falhar em cenários de teste onde a sincronização
+  // do DB esteja em andamento.
+  const rolesFromJwtRaw: string[] = (res.locals && res.locals.roles) ? res.locals.roles : (req as any).roles || [];
+  const permsFromJwt: any[] = (res.locals && res.locals.permissions) ? res.locals.permissions : (req as any).permissions || [];
+
+  // Normalizar roles para lowercase para comparações case-insensitive
+  const rolesFromJwt = (rolesFromJwtRaw || []).map(r => (typeof r === 'string' ? r.toLowerCase() : r));
+
+  // Normalizar requested action/resource
+  const requestedAction = (action || '').toString().toLowerCase();
+  const requestedResource = (resource || '').toString().toLowerCase();
 
       // Se temos roles vindas do JWT, podemos usá-las diretamente para decisões de autorização
       if (rolesFromJwt && rolesFromJwt.includes('admin')) {
@@ -64,7 +71,9 @@ export function authorize(resource: string, action: string) {
       }
 
       // Determinar roles a partir do JWT, ou do usuário salvo no banco
-      const roles: string[] = (rolesFromJwt && rolesFromJwt.length) ? rolesFromJwt : (user ? user.roles || [] : []);
+      // Normalize roles from DB as well to lowercase strings
+      const rolesFromDb: string[] = (user && user.roles) ? (Array.isArray(user.roles) ? user.roles.map((r: any) => (typeof r === 'string' ? r.toLowerCase() : r)) : []) : [];
+      const roles: string[] = (rolesFromJwt && rolesFromJwt.length) ? rolesFromJwt : rolesFromDb;
       if (roles.includes('admin')) {
         const congIdForLog = (res.locals && res.locals.congregacao_id) ? res.locals.congregacao_id : (req as any).congregacao_id;
         // logger.info(`Admin access granted for congregacao ${congIdForLog}`);
@@ -76,7 +85,10 @@ export function authorize(resource: string, action: string) {
   const roleRepo = getRepository(RoleEntity);
   // find role entities and filter by name (roles contains names)
   const allRoles = await roleRepo.find().catch(() => []) as Array<{ name?: string; permissions?: unknown[] }>;
-  const roleEntities = (allRoles || []).filter((r) => (roles || []).includes(r.name || ''));
+  const roleEntities = (allRoles || []).filter((r) => {
+    const name = (r.name || '').toString().toLowerCase();
+    return (roles || []).includes(name);
+  });
 
       // collect permissions from role entities
       const perms: Permission[] = [];
@@ -86,25 +98,33 @@ export function authorize(resource: string, action: string) {
       }
 
       // also support roles named like 'resource:action' or 'resource:action:scope' for backward compatibility
-      for (const rname of roles) {
+      for (const rnameRaw of roles) {
+        const rname = (typeof rnameRaw === 'string') ? rnameRaw : String(rnameRaw);
         const parts = rname.split(':');
         if (parts.length >= 2) {
+          const resourcePart = parts[0].toLowerCase();
+          const actionPart = parts[1].toLowerCase();
           const scopePart = parts[2] as string | undefined;
           const scope = scopePart === 'congregation' || scopePart === 'scoped' ? 'congregation' : (scopePart === 'own' ? 'own' : 'all');
-          perms.push({ resource: parts[0], action: parts[1], scope });
+          perms.push({ resource: resourcePart, action: actionPart, scope });
         }
       }
 
-      const matches = perms.filter(p => (p.resource === resource || p.resource === '*') && (p.action === action || p.action === '*'));
+      // match case-insensitive using normalized requested values
+      const matches = perms.filter(p => {
+        const pr = (p.resource || '').toString().toLowerCase();
+        const pa = (p.action || '').toString().toLowerCase();
+        return (pr === requestedResource || pr === '*') && (pa === requestedAction || pa === '*');
+      });
       if (!matches.length) return res.status(403).json({ message: 'Forbidden' });
 
       // evaluate scopes: if any permission grants action with acceptable scope, allow
       for (const p of matches) {
-        const scope = p.scope || 'all';
-  if (scope === 'all') return next();
+        const scope = (p.scope || 'all').toString().toLowerCase();
+        if (scope === 'all') return next();
         if (scope === 'congregation') {
           // for create action: require req.congregacao_id
-          if (action === 'create') {
+          if (requestedAction === 'create') {
             const congCheck = (res.locals && res.locals.congregacao_id) ? res.locals.congregacao_id : (req as any).congregacao_id;
             if (congCheck) return next();
             continue;
@@ -113,7 +133,7 @@ export function authorize(resource: string, action: string) {
           const id = (req.params && (req.params.id || req.params.membro_id)) as string | undefined;
           if (!id) continue;
           // map resource to entity
-          if (resource === 'members') {
+          if (requestedResource === 'members' || requestedResource === 'membros') {
             const Member = require('../entities/Member').Member;
             const repo = getRepository(Member);
             const ent = await repo.findOne({ where: { membro_id: id } as unknown as Record<string, unknown> }) as unknown as { congregacao_id?: string } | null;
@@ -128,7 +148,7 @@ export function authorize(resource: string, action: string) {
           // for 'own' scope, check resource ownership by created_by or owner field
           const id = (req.params && (req.params.id || req.params.membro_id)) as string | undefined;
           if (!id) continue;
-          if (resource === 'members') {
+          if (requestedResource === 'members' || requestedResource === 'membros') {
             const Member = require('../entities/Member').Member;
             const repo = getRepository(Member);
             const ent = await repo.findOne({ where: { membro_id: id } as unknown as Record<string, unknown> }) as unknown as { created_by?: string } | null;
