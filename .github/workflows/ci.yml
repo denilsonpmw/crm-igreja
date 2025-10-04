@@ -68,6 +68,10 @@ jobs:
             echo "Waiting for Postgres... ($i/30)"
             sleep 2
           done
+      - name: Run migrations
+        run: |
+          # Ensure dev deps (ts-node) are present and run TypeORM migrations so the test DB is up-to-date
+          npm run migration:run
       - name: Run backend tests with coverage
         env:
           NODE_ENV: test
