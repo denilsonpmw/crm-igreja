@@ -161,6 +161,25 @@ function createTestApp() {
     app.use(tenant_1.tenantMiddleware);
     // middleware de simulação de auth: pega x-user-id e anexa a req.user_id
     app.use(async (req, _res, next) => {
+        // Garantir que, se o header de congregação for passado, exista uma entrada correspondente
+        const cid = req.headers['x-congregacao-id'];
+        if (cid) {
+            const idVal = Array.isArray(cid) ? cid[0] : cid;
+            try {
+                const congRepo = testDataSource_1.TestDataSource.getRepository(Congregacao_1.Congregacao);
+                let c = await congRepo.findOne({ where: { congregacao_id: idVal } });
+                if (!c) {
+                    c = congRepo.create({ congregacao_id: idVal, nome: 'Test Congregacao ' + idVal });
+                    try {
+                        await congRepo.save(c);
+                    }
+                    catch (e) { /* ignore save errors */ }
+                }
+            }
+            catch (e) {
+                // se o TestDataSource não estiver pronto por algum motivo, ignorar — outros testes inicializam antes
+            }
+        }
         const uid = req.headers['x-user-id'];
         if (uid) {
             req.user_id = Array.isArray(uid) ? uid[0] : uid;
@@ -253,6 +272,10 @@ function createTestApp() {
                 payload.logo_url = logo_url;
             if (configuracoes !== undefined)
                 payload.configuracoes = configuracoes;
+            // Check duplicate by name
+            const existing = await repo.findOne({ where: { nome: payload.nome } });
+            if (existing)
+                return res.status(409).json({ message: 'Já existe uma congregação com esse nome' });
             const c = repo.create(payload);
             await repo.save(c);
             res.status(201).json(c);
@@ -305,6 +328,9 @@ function createTestApp() {
         });
         router.delete('/:id', async (req, res) => {
             const repo = testDataSource_1.TestDataSource.getRepository(Congregacao_1.Congregacao);
+            const toDelete = await repo.findOne({ where: { congregacao_id: req.params.id } });
+            if (!toDelete)
+                return res.status(404).json({ message: 'Not found' });
             await repo.delete({ congregacao_id: req.params.id });
             res.status(204).send();
         });

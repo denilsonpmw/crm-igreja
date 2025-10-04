@@ -1,8 +1,10 @@
+
 import express from 'express';
 import { AppDataSource } from '../data-source';
 import { Member } from '../entities/Member';
 import Joi from 'joi';
 import { authorize } from '../middlewares/authorize';
+import { authMiddleware } from '../middlewares/auth';
 import { recordAudit } from '../services/auditService';
 import { logger } from '../utils/logger';
 import type { FindOptionsWhere } from 'typeorm';
@@ -13,87 +15,56 @@ const memberCreateSchema = Joi.object({
   nome: Joi.string().min(1).required(),
   cpf: Joi.string().allow('', null),
   telefone: Joi.string().allow('', null),
-}).unknown(true);
-
-const memberUpdateSchema = Joi.object({
-  nome: Joi.string().min(1),
-  cpf: Joi.string().allow('', null),
-  telefone: Joi.string().allow('', null),
-}).unknown(true);
-
-router.get('/', async (req, res) => {
-  const repo = AppDataSource.getRepository(Member);
-  const query: FindOptionsWhere<Member> = {} as FindOptionsWhere<Member>;
-  const congregacaoId = (req as unknown as { congregacao_id?: string | null }).congregacao_id;
-  if (congregacaoId) query.congregacao_id = congregacaoId;
-  const members = await repo.find({ where: query });
-  res.json(members);
+  email: Joi.string().email().allow('', null),
+  data_nascimento: Joi.date().allow('', null),
+  sexo: Joi.string().valid('M', 'F').allow('', null),
+  estado_civil: Joi.string().allow('', null),
+  profissao: Joi.string().allow('', null),
+  endereco: Joi.string().allow('', null),
+  cep: Joi.string().allow('', null),
+  cidade: Joi.string().allow('', null),
+  estado: Joi.string().allow('', null),
+  data_conversao: Joi.date().allow('', null),
+  data_batismo: Joi.date().allow('', null),
+  status: Joi.string().allow('', null),
+  ministerios: Joi.array().items(Joi.string()).allow(null),
+  observacoes: Joi.string().allow('', null),
+  foto_url: Joi.string().allow('', null)
 });
 
-router.post('/', authorize('members', 'create'), async (req, res) => {
+// Criação de membro individual
+router.post('/', authMiddleware, authorize('members', 'create'), async (req, res) => {
   const { error, value } = memberCreateSchema.validate(req.body);
-  if (error) return res.status(400).json({ message: error.message });
+  if (error) return res.status(400).json({ message: error.details[0].message });
 
   const repo = AppDataSource.getRepository(Member);
-  const congregacaoId = (req as unknown as { congregacao_id?: string | null }).congregacao_id || null;
-  const userId = (req as unknown as { user_id?: string | null }).user_id || null;
-  const validated = value as Partial<Member>;
-  const member = repo.create({ ...validated, congregacao_id: congregacaoId, created_by: userId });
-  await repo.save(member);
-  // audit
-  try {
-    await recordAudit({
-      user_id: userId || undefined,
-      congregacao_id: congregacaoId || undefined,
-      action: 'CREATE',
-      resource_type: 'members',
-      resource_id: member.membro_id,
-      new_values: member,
-      success: true,
-      ip_address: req.ip || undefined,
-      user_agent: (req.headers['user-agent'] as string) || undefined,
-      session_id: (req.headers['x-session-id'] as string) || undefined
-    });
-  } catch (e) { logger.error('Audit error', e); }
-  res.status(201).json(member);
-});
-
-// Update member with tenant check
-router.put('/:id', authorize('members', 'update'), async (req, res) => {
-  const { error, value } = memberUpdateSchema.validate(req.body)
-  if (error) return res.status(400).json({ message: error.message });
-
-  const repo = AppDataSource.getRepository(Member);
-  const member = await repo.findOne({ where: { membro_id: req.params.id } as FindOptionsWhere<Member> })
-  if (!member) return res.status(404).json({ message: 'Member not found' });
-
-  // tenant isolation: only allow update if member belongs to tenant
   const congregacaoId = (req as unknown as { congregacao_id?: string | null }).congregacao_id;
-  if (congregacaoId && member.congregacao_id !== congregacaoId) {
-    return res.status(403).json({ message: 'Forbidden' });
-  }
+  
+  const member = repo.create({ ...value, congregacao_id: congregacaoId });
+  const savedMember = await repo.save(member);
+  const memberObj = Array.isArray(savedMember) ? savedMember[0] : savedMember;
 
-  Object.assign(member, value as Partial<Member>)
-  await repo.save(member);
   try {
     await recordAudit({
       user_id: (req as unknown as { user_id?: string }).user_id || undefined,
       congregacao_id: congregacaoId || undefined,
-      action: 'UPDATE',
+      action: 'CREATE',
       resource_type: 'members',
-      resource_id: member.membro_id,
-      new_values: member,
+      resource_id: memberObj.membro_id,
+      new_values: memberObj,
       success: true,
       ip_address: req.ip || undefined,
       user_agent: (req.headers['user-agent'] as string) || undefined,
       session_id: (req.headers['x-session-id'] as string) || undefined
     });
   } catch (e) { logger.error('Audit error', e); }
-  res.json(member);
+
+  res.status(201).json(memberObj);
 });
 
+
 // Delete member with tenant check
-router.delete('/:id', authorize('members', 'delete'), async (req, res) => {
+router.delete('/:id', authMiddleware, authorize('members', 'delete'), async (req, res) => {
   const repo = AppDataSource.getRepository(Member)
   const member = await repo.findOne({ where: { membro_id: req.params.id } as FindOptionsWhere<Member> })
   if (!member) return res.status(404).json({ message: 'Member not found' });

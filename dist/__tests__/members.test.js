@@ -9,15 +9,8 @@ const testApp_1 = require("./helpers/testApp");
 describe('Endpoints de Membros', () => {
     let app;
     beforeAll(async () => {
-        if (!testDataSource_1.TestDataSource.isInitialized) {
-            await testDataSource_1.TestDataSource.initialize();
-        }
+        // TestDataSource já foi inicializado no jest.setup.ts
         app = (0, testApp_1.createTestApp)();
-    });
-    afterAll(async () => {
-        if (testDataSource_1.TestDataSource.isInitialized) {
-            await testDataSource_1.TestDataSource.destroy();
-        }
     });
     beforeEach(async () => {
         await testDataSource_1.TestDataSource.synchronize(true);

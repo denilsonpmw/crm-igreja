@@ -6,23 +6,14 @@ beforeAll(async () => {
   if (!TestDataSource.isInitialized) {
     await TestDataSource.initialize();
     
-    // Se usando Postgres, garantir que o schema está limpo
+    // Se usando Postgres, NÃO usar synchronize pois as migrations já foram executadas
     if (process.env.DATABASE_URL) {
       try {
-        // Verificar se schema public existe, se não existir, criar
-        const schemaResult = await TestDataSource.query(
-          "SELECT schema_name FROM information_schema.schemata WHERE schema_name = 'public'"
-        );
-        
-        if (schemaResult.length === 0) {
-          await TestDataSource.query('CREATE SCHEMA public');
-        }
-        
         // Garantir extensão uuid-ossp
         await TestDataSource.query('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"');
         
-        // Usar synchronize para criar tabelas
-        await TestDataSource.synchronize(true);
+        // NÃO chamar synchronize aqui, pois as migrations já criaram as tabelas
+        // await TestDataSource.synchronize(true); // REMOVIDO
       } catch (error) {
         console.warn('Warning during schema setup:', (error as Error).message);
       }

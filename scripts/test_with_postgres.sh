@@ -80,6 +80,10 @@ fi
 
 echo "Rodando testes com DATABASE_URL=$DATABASE_URL"
 
+# Executar migrations antes dos testes usando ts-node
+echo "Executando migrations..."
+npx ts-node ./node_modules/typeorm/cli.js migration:run -d src/data-source.ts
+
 # Executar jest (pass-through de argumentos)
 npx jest "$@"
 

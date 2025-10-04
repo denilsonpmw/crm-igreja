@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { recordAudit } from '../services/auditService';
 import { AppDataSource } from '../data-source';
 import { User } from '../entities/User';
 import { UserSession } from '../entities/UserSession';
@@ -36,14 +37,47 @@ router.post('/register', async (req, res) => {
 
 router.post('/login', async (req, res) => {
   const { email, senha } = req.body as { email: string; senha: string };
-  if (!email || !senha) return res.status(400).json({ message: 'Missing fields' });
+  const ip = req.ip;
+  const userAgent = req.headers['user-agent'] || '';
+  if (!email || !senha) {
+    await recordAudit({
+      action: 'LOGIN',
+      resource_type: 'usuarios',
+      success: false,
+      error_message: 'Missing fields',
+      ip_address: ip,
+      user_agent: userAgent,
+    });
+    return res.status(400).json({ message: 'Missing fields' });
+  }
 
   const userRepo = AppDataSource.getRepository(User);
   const user = await userRepo.findOne({ where: { email } });
-  if (!user) return res.status(401).json({ message: 'Invalid credentials' });
+  if (!user) {
+    await recordAudit({
+      action: 'LOGIN',
+      resource_type: 'usuarios',
+      success: false,
+      error_message: 'Invalid credentials',
+      ip_address: ip,
+      user_agent: userAgent,
+    });
+    return res.status(401).json({ message: 'Invalid credentials' });
+  }
 
   const match = await bcrypt.compare(senha, user.senha_hash);
-  if (!match) return res.status(401).json({ message: 'Invalid credentials' });
+  if (!match) {
+    await recordAudit({
+      user_id: user.usuario_id,
+      action: 'LOGIN',
+      resource_type: 'usuarios',
+      success: false,
+      error_message: 'Invalid credentials',
+      ip_address: ip,
+      user_agent: userAgent,
+    });
+    return res.status(401).json({ message: 'Invalid credentials' });
+  }
 
   const accessToken = signAccessToken(user.usuario_id);
   const refreshToken = generateRefreshToken();
@@ -52,6 +86,15 @@ router.post('/login', async (req, res) => {
   const sessionRepo = AppDataSource.getRepository(UserSession);
   const session = sessionRepo.create({ user_id: user.usuario_id, refresh_token_hash: refreshHash, expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) });
   await sessionRepo.save(session);
+
+  await recordAudit({
+    user_id: user.usuario_id,
+    action: 'LOGIN',
+    resource_type: 'usuarios',
+    success: true,
+    ip_address: ip,
+    user_agent: userAgent,
+  });
 
   return res.json({ accessToken, refreshToken });
 });

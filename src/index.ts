@@ -12,6 +12,7 @@ import { tenantMiddleware } from './middlewares/tenant';
 import rolesRouter from './routes/roles';
 import auditRouter from './routes/audit';
 import importRouter from './routes/imports';
+import attachmentsRouter from './routes/attachments';
 
 dotenv.config();
 
@@ -37,6 +38,7 @@ app.use('/members', membersRouter);
 app.use('/roles', rolesRouter);
 app.use('/audit', auditRouter);
 app.use('/import', importRouter);
+app.use('/attachments', attachmentsRouter);
 // middleware de tenant (simples) e rota de congregações e famílias
 app.use(tenantMiddleware);
 app.use('/congregations', congregationsRouter);

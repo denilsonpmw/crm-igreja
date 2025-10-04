@@ -9,19 +9,20 @@ import { Congregacao } from '../../entities/Congregacao';
 import { Family } from '../../entities/Family';
 import { Role } from '../../entities/Role';
 import { AuditLog } from '../../entities/AuditLog';
+import { Anexo } from '../../entities/Anexo';
 
 // Criar lista de entidades fixa para evitar problemas com globs em testes
-const entities = [User, UserSession, Member, Congregacao, Family, Role, AuditLog];
+const entities = [User, UserSession, Member, Congregacao, Family, Role, AuditLog, Anexo];
 
 // Declarar a variável e atribuir condicionalmente
 let _testDataSource: DataSource;
 
 if (process.env.DATABASE_URL) {
-  // Usar Postgres com synchronize habilitado para testes (mais simples e confiável)
+  // Usar Postgres sem synchronize, pois as migrations já foram executadas pelo script de teste
   _testDataSource = new DataSource({
     type: 'postgres',
     url: process.env.DATABASE_URL,
-    synchronize: true, // Habilitado para testes para maior simplicidade
+    synchronize: false, // DESABILITADO - migrations são executadas antes dos testes
     logging: false,
     entities,
     migrations: [

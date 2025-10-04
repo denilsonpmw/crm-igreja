@@ -9,8 +9,9 @@ const typeorm_1 = require("typeorm");
 const dotenv_1 = __importDefault(require("dotenv"));
 const path_1 = __importDefault(require("path"));
 dotenv_1.default.config();
+const logger_1 = require("./utils/logger");
 if (!process.env.DATABASE_URL) {
-    console.warn('DATABASE_URL not set — falling back to SQLite dev database at ./dev.sqlite');
+    logger_1.logger.warn('DATABASE_URL not set — falling back to SQLite dev database at ./dev.sqlite');
 }
 const isPostgres = !!process.env.DATABASE_URL;
 // Determinar se estamos em ambiente de desenvolvimento ou produção
@@ -20,7 +21,7 @@ exports.AppDataSource = new typeorm_1.DataSource(isPostgres
     ? {
         type: 'postgres',
         url: process.env.DATABASE_URL,
-        synchronize: true,
+        synchronize: false, // Desabilitado para usar migrations em produção
         logging: false,
         entities: [path_1.default.join(__dirname, 'entities', `*.${entityExtension}`)],
         migrations: [
@@ -31,7 +32,7 @@ exports.AppDataSource = new typeorm_1.DataSource(isPostgres
     : {
         type: 'sqlite',
         database: path_1.default.join(process.cwd(), 'dev.sqlite'),
-        synchronize: true,
+        synchronize: true, // SQLite local pode usar synchronize
         logging: false,
         entities: [path_1.default.join(__dirname, 'entities', `*.${entityExtension}`)]
     });

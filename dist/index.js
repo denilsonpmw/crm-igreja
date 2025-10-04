@@ -9,6 +9,7 @@ const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 const dotenv_1 = __importDefault(require("dotenv"));
 const data_source_1 = require("./data-source");
+const logger_1 = require("./utils/logger");
 const auth_1 = __importDefault(require("./routes/auth"));
 const members_1 = __importDefault(require("./routes/members"));
 const congregations_1 = __importDefault(require("./routes/congregations"));
@@ -44,15 +45,20 @@ const PORT = Number(process.env.PORT) || 3001;
 async function startServer(port = PORT) {
     try {
         await data_source_1.AppDataSource.initialize();
+        // Se usando Postgres, executar migrations
+        if (process.env.DATABASE_URL) {
+            await data_source_1.AppDataSource.runMigrations();
+            logger_1.logger.info('Database migrations executed successfully');
+        }
         return new Promise((resolve) => {
             app.listen(port, () => {
-                console.log(`Server running on port ${port}`);
+                logger_1.logger.info(`Server running on port ${port}`);
                 resolve();
             });
         });
     }
     catch (err) {
-        console.error('Error during Data Source initialization', err);
+        logger_1.logger.error('Error during Data Source initialization', err);
         throw err;
     }
 }

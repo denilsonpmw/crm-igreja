@@ -31,7 +31,7 @@ __decorate([
     __metadata("design:type", String)
 ], User.prototype, "senha_hash", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ type: 'simple-json', nullable: false, default: '[]' }),
+    (0, typeorm_1.Column)({ type: 'jsonb', nullable: false, default: () => "'[]'::jsonb" }),
     __metadata("design:type", Array)
 ], User.prototype, "roles", void 0);
 __decorate([

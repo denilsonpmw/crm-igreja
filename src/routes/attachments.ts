@@ -106,22 +106,32 @@ router.post('/', authMiddleware, authorize('attachments', 'create'), upload.sing
     // Log sucinto com informações não sensíveis
     logger.info('[UPLOAD] file:', file ? file.originalname : null, 'entity:', entity_type, 'entity_id:', entity_id);
 
-    if (!file || !entity_type || !entity_id || !congregacao_id) {
+    if (!file || !entity_type || !entity_id) {
       logger.warn('[UPLOAD ERROR] Campos obrigatórios ausentes', { file: !!file, entity_type, entity_id, congregacao_id });
+      await recordAudit({
+        user_id,
+        congregacao_id,
+        action: 'CREATE',
+        resource_type: 'anexos',
+        success: false,
+        error_message: 'Campos obrigatórios ausentes',
+        ip_address: req.ip || undefined,
+        user_agent: (req.headers['user-agent'] as string) || undefined,
+      });
       return res.status(400).json({ error: 'Arquivo, entidade e congregação são obrigatórios' });
     }
 
     const anexoRepo = AppDataSource.getRepository(Anexo);
-    // Evitar passar null, apenas undefined para campos opcionais
+    // Evitar converter null para string 'null', manter null ou undefined
     const anexo = anexoRepo.create({
-      congregacao_id: String(congregacao_id),
+      congregacao_id: congregacao_id || undefined,
       entity_type: String(entity_type),
       entity_id: String(entity_id),
       file_name: file.originalname,
       file_path: file.path,
       file_size: file.size,
       mime_type: file.mimetype,
-      uploaded_by: user_id ? String(user_id) : undefined,
+      uploaded_by: user_id || undefined,
       virus_scan_status: 'pending'
     });
     const saved = await anexoRepo.save(anexo);
@@ -138,6 +148,16 @@ router.post('/', authMiddleware, authorize('attachments', 'create'), upload.sing
     res.status(201).json(saved);
   } catch (error) {
     logger.error('Erro no upload de anexo:', error);
+    await recordAudit({
+      user_id: (res.locals && res.locals.user_id) || undefined,
+      congregacao_id: (res.locals && res.locals.congregacao_id) || undefined,
+      action: 'CREATE',
+      resource_type: 'anexos',
+      success: false,
+      error_message: String(error),
+      ip_address: req.ip || undefined,
+      user_agent: (req.headers['user-agent'] as string) || undefined,
+    });
     res.status(500).json({ error: 'Erro interno ao fazer upload' });
   }
 });
