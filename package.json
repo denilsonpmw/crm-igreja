@@ -14,7 +14,7 @@
     "migration:show": "ts-node ./node_modules/typeorm/cli.js migration:show -d src/data-source.ts",
     "lint": "eslint src --ext .ts",
     "test": "bash ./scripts/test_with_postgres.sh",
-    "test:coverage": "jest --coverage",
+  "test:coverage": "npm run migration:run && jest --coverage",
     "test:e2e": "playwright test --config=e2e/playwright.config.ts",
     "test:watch": "jest --watch",
     "ci": "npm ci && npm run lint && npm run build && npm run test:coverage",
